@@ -11,3 +11,6 @@ shots/*
 .test/
 dist-night/
 .night-build.log
+# Generated exports; canonical game images are tracked under public/alpine/.
+output/**/*.png
+output/**/*.zip

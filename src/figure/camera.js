@@ -23,7 +23,7 @@ export class Follow {
     if (this.free) { cam.position.copy(this.free.position); cam.lookAt(this.free.target); return; }
     this.yaw -= look.x;
     this.pitch = THREE.MathUtils.clamp(this.pitch + look.y, -0.75, 1.2);
-    this.want = THREE.MathUtils.clamp(this.want + zoom * 0.5, 2.8, 13);
+    this.want = THREE.MathUtils.clamp(this.want + zoom * 0.5, 2.8, 26);
     const goal = new THREE.Vector3(target.x, target.y + 1.35, target.z);
     if (this.pivot.lengthSq() === 0) this.pivot.copy(goal);
     this.pivot.x = damp(this.pivot.x, goal.x, 10, dt);

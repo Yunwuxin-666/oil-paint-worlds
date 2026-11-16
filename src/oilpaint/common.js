@@ -69,6 +69,7 @@ export function createShared() {
     uHaze: { value: new THREE.Color(0.6, 0.6, 0.67) },
     uHazeSun: { value: new THREE.Color(1.0, 0.89, 0.62) },
     uHazeDensity: { value: 0.0105 },
+    uGroundMist: { value: 0 }, // optional terrain-following morning mist; off in the other scenes
     uHazeGlow: { value: new THREE.Color(0.1, 0.08, 0.02) }, // what the air adds right round the sun
     uShadeBias: { value: 0.0009 }, // how far a spot must be behind the still world's shade to be in it
     uBounce: { value: new THREE.Color(0.1, 0.045, 0.0) }, // light the ground throws up into a figure's shade
@@ -102,6 +103,7 @@ uniform mat4 uFigShadeMat;
 uniform vec3 uHaze;
 uniform vec3 uHazeSun;
 uniform float uHazeDensity;
+uniform float uGroundMist;
 uniform vec3 uHazeGlow;
 uniform float uShadeBias;
 uniform vec3 uBounce;
@@ -201,6 +203,25 @@ float lampAt(vec3 world, vec3 n) {
 float mistBetween(vec3 world) {
   vec3 d = world - cameraPosition;
   float dist = length(d);
+  if (uGroundMist > 0.0) {
+    // Integrate through a shallow, uneven layer over the terrain. Fixed world coordinates
+    // keep banks of mist in place when walking or turning; no camera-following fog sheet.
+    float reach = min(dist, 420.0), optical = 0.0;
+    vec3 direction = d / max(dist, .001);
+    for (int i = 0; i < 6; i++) {
+      float along = (float(i) + .5) * reach / 6.0;
+      vec3 p = cameraPosition + direction * along;
+      float domain = 1.0-smoothstep(uExtent-48.0,uExtent,max(abs(p.x),abs(p.z)));
+      float above = max(0.0,p.y-heightAt(p.xz));
+      float low = exp(-above / 16.0);
+      float bank = .65 + .60 * texture(tNoise,p.xz/185.0).g;
+      optical += low * bank * domain * smoothstep(12.0,48.0,along);
+    }
+    optical *= reach / 6.0 * uGroundMist;
+    // A continuous distance falloff, with a much thinner atmosphere beyond the valley.
+    optical += min(dist,300.0)*uHazeDensity + max(0.0,dist-300.0)*.000045;
+    return 1.0-exp(-optical);
+  }
   float sunward = max(dot(d / dist, uSunDir), 0.0);
   float up = clamp((0.5 * (world.y + cameraPosition.y) - uFocus.y - 2.0) / 22.0, 0.0, 1.0);
   return 1.0 - exp(-dist * uHazeDensity * mix(1.2, 0.4, up) * (1.0 + 0.7 * sunward * sunward));

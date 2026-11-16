@@ -19,6 +19,7 @@ export function createFrame(renderer, shared, { samples = 4 } = {}) {
     uShafts: { value: 1 },
     uSteps: { value: 22 },
     uCanvas: { value: 1 },
+    uCanvasPixelRatio: { value: renderer.getPixelRatio() },
     uSize: { value: size.clone() },
   };
   const material = new THREE.ShaderMaterial({
@@ -38,16 +39,20 @@ export function createFrame(renderer, shared, { samples = 4 } = {}) {
       uniform float uShafts;
       uniform float uSteps;
       uniform float uCanvas;
+      uniform float uCanvasPixelRatio;
       uniform vec2 uSize;
       in vec2 vUv;
       layout(location = 0) out vec4 outC;
 
       float weave(vec2 p) {
         // warp and weft of a medium linen, each thread a little uneven
-        vec2 q = p / 2.6;
+        vec2 q = p / 3.2;
         float n = texture(tNoise, p / 310.0).r;
-        float a = sin(q.x * 3.14159) * sin(q.y * 3.14159 + floor(q.x) * 3.14159);
-        return a * (0.3 + 1.4 * n * n);
+        // Soft crossing linen threads, not a hard checkerboard. No time/camera input:
+        // the support stays still while the painted world moves over it.
+        float warp = sin(q.x * TAU + n * .55);
+        float weft = sin(q.y * TAU + texture(tNoise,p/230.).g * .55);
+        return (warp * .42 + weft * .38 + warp * weft * .20) * (.65 + n * .45);
       }
 
       void main() {
@@ -80,10 +85,12 @@ export function createFrame(renderer, shared, { samples = 4 } = {}) {
         }
 
         if (uCanvas > 0.0) {
-          vec2 px = vUv * uSize;
+          vec2 px = vUv * uSize / uCanvasPixelRatio;
           float w = weave(px);
           float dx = weave(px + vec2(1.0, 0.0)) - w, dy = weave(px + vec2(0.0, 1.0)) - w;
-          col *= 1.0 + (0.6 * dx - 0.8 * dy) * 0.022 * uCanvas + w * 0.006 * uCanvas;
+          float tooth = texture(tNoise, px / 85.0).b - .5;
+          float thinPaint = mix(.65, 1., smoothstep(.12,.65,dot(col,vec3(.299,.587,.114))));
+          col *= 1.0 + ((.6 * dx - .8 * dy) * .026 + w * .010 + tooth * .014) * uCanvas * thinPaint;
         }
         // the brightest passages roll off toward the white of the paint and never past it
         vec3 over = max(col - 0.8, 0.0);
@@ -107,6 +114,7 @@ export function createFrame(renderer, shared, { samples = 4 } = {}) {
       renderer.getDrawingBufferSize(size);
       target.setSize(size.x, size.y);
       uniforms.uSize.value.copy(size);
+      uniforms.uCanvasPixelRatio.value = renderer.getPixelRatio();
     },
     render(world, camera) {
       renderer.setRenderTarget(target);

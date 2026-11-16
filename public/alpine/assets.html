@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雪山牧场 · 大色块油画资产图册</title>
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;--ink:#243d3b;--paper:#f1eee5;--line:#d2d1c4}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 system-ui,"Microsoft YaHei",sans-serif}a{color:inherit;text-underline-offset:4px}header,main,footer{max-width:1320px;margin:auto;padding:36px 32px}header{padding-top:52px;border-bottom:1px solid var(--line)}nav{display:flex;gap:24px;justify-content:space-between;font-size:13px}h1{font-family:serif;font-size:clamp(30px,4vw,54px);line-height:1.2;margin:36px 0 18px;font-weight:500}h2{font-size:22px;font-weight:500}p{max-width:800px;color:#5c6b61}.kicker{letter-spacing:.2em;font-size:11px}.refs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0 42px}.ref{margin:0;background:#e3e4d7;border:1px solid var(--line)}.ref img{display:block;width:100%;height:200px;object-fit:cover;object-position:50% 55%}.ref figcaption{padding:10px 14px;font-size:13px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.asset{border:1px solid var(--line);background:#faf8f2;overflow:hidden}.preview{display:block;background-color:#dedfd4;background-image:linear-gradient(45deg,#d4d6ca 25%,transparent 25%),linear-gradient(-45deg,#d4d6ca 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d4d6ca 75%),linear-gradient(-45deg,transparent 75%,#d4d6ca 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}.preview img{display:block;width:100%;height:310px;object-fit:contain}.body{padding:20px}.body h3{margin:0 0 5px;font-size:19px;font-weight:500}.tag{font-size:11px;letter-spacing:.1em;color:#798472}.note{font-size:13px;margin:10px 0 18px;min-height:44px}.links{display:flex;gap:18px;font-size:13px}details{margin-top:16px;font-size:12px;color:#5c6b61}summary{cursor:pointer}.prompt{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;padding:12px;background:#eeeade}footer{font-size:12px;color:#758073;border-top:1px solid var(--line)}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:580px){header,main,footer{padding:24px 18px}.grid{grid-template-columns:1fr}.refs{gap:7px}.ref img{height:140px}.ref figcaption{padding:8px;font-size:11px}.preview img{height:330px}nav{gap:14px;font-size:12px}}
+</style>
+<header><nav><span class="kicker">PASTURE / ASSET STUDIES · 12</span><a href="/?scene=alpine">进入雪山牧场 ↗</a></nav><h1>以大色块，画出山野。</h1><p>新疆雪峰、云杉林与草甸的资产开发图册。宽扁笔触构成体积，冷暖色块区分材质；每个物件独立输出，保留可复用的生成提示词。</p><a href="assets-v3/manifest.json" download>下载全部提示词 JSON ↓</a></header>
+<main><h2>三张参考，各司其职</h2><div class="refs"><figure class="ref"><img src="reference.png" alt="新疆雪山草甸场景参考"><figcaption>环境与配色 · 雪山、林坡、草甸、砂石河滩</figcaption></figure><figure class="ref"><img src="references/autumn-strokes.png" alt="秋日森林宽笔触参考"><figcaption>笔触尺度 · 宽条、破边、树干纵向色块</figcaption></figure><figure class="ref"><img src="references/aurora-strokes.png" alt="极光雪岭体积色块参考"><figcaption>体积语言 · 成组明暗、方向性笔触</figcaption></figure></div><h2>单资产 · 大色块版</h2><p>棋盘格用于查看透明边缘。草、树、牛与道具图用于造型和材质开发；游戏中的可绕行体积、碰撞和动作由三维模型实现。两张地表材质为 RGB 图片，平铺前仍应检查接缝。</p><div id="assets" class="grid" aria-live="polite"></div><h2 style="margin-top:48px">远山绘景 · 宽幅大色块版</h2><p>额外输出的 3:1 山脉全景，延续暖白雪面、灰蓝阴面和蓝绿林坡。此图现仅保留为美术参考；游戏远山已改成代码生成的三维网格，不再加载这张图片。</p><a href="mountain-panorama-v4.png" target="_blank" rel="noopener"><img src="mountain-panorama-v4.png" alt="宽幅雪山大色块绘景" style="display:block;width:100%;height:auto"></a><p><a href="mountain-panorama-v4.png" download>下载远山 PNG ↓</a>　<a href="background-manifest.json" download>下载远山提示词 ↓</a></p></main>
+<footer>图像：内置 imagegen，2026-11-16。椅子属于补充设计，原场景图中没有明确可辨的椅子。当前图册展示大色块修订版，早期细笔触结构稿保留在项目 output 目录。</footer>
+<script type="module">
+const notes={
+'01-short-meadow':'放牧区低层草甸，约 8–16 cm。宽叶与贴地弯叶组合，保留不规则根部。',
+'02-tall-meadow':'约 25–55 cm 的高草与草本，局部分布在围栏、低洼和湿润外缘。',
+'03-spruce-bough':'云杉的枝组参考。用成组下垂针叶色块建立枝条体积，避免逐针描绘。',
+'04-schrenk-spruce':'10–22 m 成树规格参考。连续树干、层叠枝序、非对称树冠和清楚的落地关系。',
+'05-grazing-cow':'肩高约 1.35–1.5 m。重点核对头颈、腹部重量、腿关节和四蹄接触。',
+'06-blue-yellow-bus':'约 6.2 × 2.25 × 2.8 m 的蓝黄小巴。核对轮距、轮拱、车窗与车门。',
+'07-timber-bench':'补充设计：座高 0.45 m、宽 1.7 m。四腿、靠背、横撑与斜撑构成完整木结构。',
+'08-river-gravel':'河床材料：暖灰砂、灰紫石、浅赭石、石英白和湿润深灰；不是单一灰色。',
+'09-meadow-ground':'草甸底层色块：橄榄、黄绿、灰绿与蓝绿暗缝。配合立体草簇，不替代草高。',
+'10-braided-stream':'河道模块设计参考：主流、侧汊、露滩、半浸石和浅深水色，保留实际河床。',
+'11-river-boulder':'独立灰紫卵石。大切面明暗、局部暖色和湿润边缘，用于石块族造型。',
+'12-timber-fence':'牧场围栏模块。约 1.05 m 高，立柱与横木连接，木纹顺结构方向。'};
+try{const {assets}=await fetch('assets-v3/manifest.json').then(r=>{if(!r.ok)throw Error(r.status);return r.json()});for(const a of assets){const card=document.createElement('article');card.className='asset';card.innerHTML=`<a class="preview" href="assets-v3/${a.id}.png" target="_blank" rel="noopener"><img src="assets-v3/${a.id}.png" alt="${a.name} · 大色块油画单资产"></a><div class="body"><div class="tag">${a.id.slice(0,2)} / ${a.transparent?'透明 PNG · 造型参考':'RGB PNG · 材质参考'}</div><h3>${a.name}</h3><p class="note">${notes[a.id]}</p><div class="links"><a href="assets-v3/${a.id}.png" target="_blank" rel="noopener">查看原图 ↗</a><a href="assets-v3/${a.id}.png" download>下载 PNG ↓</a></div><details><summary>查看完整生成提示词</summary><div class="prompt"></div></details></div>`;card.querySelector('.prompt').textContent=a.prompt;document.querySelector('#assets').append(card);}}catch(e){document.querySelector('#assets').textContent='资产目录未能加载，请刷新重试。';console.error(e)}
+</script>
+</html>

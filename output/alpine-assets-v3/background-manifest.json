@@ -1,0 +1,11 @@
+{
+  "id": "13-mountain-panorama",
+  "name": "大色块雪山远景",
+  "styleRevision": "large-flat-brush-v4",
+  "references": [
+    "reference.png",
+    "references/autumn-strokes.png",
+    "references/aurora-strokes.png"
+  ],
+  "prompt": "Create one extra-wide continuous game background matte of the Xinjiang Tianshan snow mountain range from reference 1. WIDE PANORAMIC 3:1 aspect ratio, broad horizontal vista. Reference 1 supplies the mountain silhouette, overlapping snow massifs and diagonal forested slope. References 2 and 3 strictly supply the rendering style: enormous discrete flat brush strokes, broad long bristle-ended paint slabs, 3-5 deliberate large color/value families building sculptural volume, absolutely no fine impasto scratchwork, no tiny knife ridges, no detailed realistic surface texture, no photographic look. Use warm ivory large snow planes, blue-grey and muted ultramarine shadow planes, blue-green conifer forest foothills; daylight sky dusty muted blue. Composition: mountains with several unequal peaks across the full width, 18 percent clean broadly brushed sky at top, mountains upper 65 percent, blue-green pine foothills covering lower 35 percent to bottom edge. Preserve the reference's main tall snow massif and rightward-rising dark green slope, but expand the distant mountain landscape naturally on both sides to make a continuous panorama with NO mirroring, repeated peaks, seams, visible frames or vignette. Sky must be an even muted dusty blue near upper and side edges, not bright cyan. On left and right edge mountains descend naturally into forested low hills, sky color #759cae. This panorama will wrap behind the playable 3D meadow. No foreground grass, roads, cows, buses, people, props or text. Each snow shadow mass should be described by only a few LARGE thick broad marks, like the long chunky strokes forming trunks and snow branches in refs 2 and 3. Brush language must read at small thumbnail scale. Production background image only, no presentation board."
+}

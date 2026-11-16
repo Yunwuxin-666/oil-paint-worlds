@@ -1,0 +1,21 @@
+Use case: style-transfer.
+Create ONE finished image by editing reference image 1, the portrait mountain pasture photograph. Maintain its original portrait 2:3 framing and composition closely. References 2 and 3 are STYLE references ONLY, from the project's oil-paint renderer. Use their distinctive chunky directional paint marks, not their subject matter, autumn palette, night lighting, characters, or game interface.
+
+COMPOSITION / CONTENT LOCKS for image 1:
+Preserve the imposing multi-peaked snowy mountain massif occupying the upper half, the narrow pale blue daytime sky above, the blue-gray rocky slopes, the broad dark evergreen forest belt across the middle, the sunlit green pasture in the foreground, the pale S-curving paved road leading from the lower right toward the middle-left distance, roadside fence posts, the small blue-and-yellow bus on the road, other tiny distant vehicles, scattered grazing cows in their current general locations, and the stony riverbed at middle right. Keep the same perspective, relative scales, mountain silhouettes and major land divisions. Do not add a wanderer, lantern, cabin, aurora, autumn foliage or new buildings. The road must remain readable and the cows and bus recognisable as small painted forms.
+
+PAINT LANGUAGE TO TRANSFER from references 2 and 3:
+A fully repainted tactile oil-on-canvas scene built from discrete, overlapping loaded-brush dabs. Short angular flat-brush marks, broad bristle strokes and occasional palette-knife planes, visibly raised impasto edges and fine grooves within each stroke. Surfaces are constructed from pigment marks, rather than a photographic image with texture added over it. Three-value light/mid/shadow masses per material, adjacent subtly different pigment mixtures, broken-color edges and selective small highlights. Clear dimensional landforms and coherent perspective beneath the paint. Large calm sky/major value masses balance rich surface work; keep snow peak edges and road shape legible.
+Snow peaks: thick ivory/cool-white palette-knife planes with pale cyan and blue-violet shadow dabs; orient strokes along ridges and down gullies.
+Rock: chisel-like blue-gray, slate and muted violet marks tracking geological planes.
+Conifers: grouped upright deep blue-green strokes and short stacked branch dabs; simplified trees, not individually photographed needles.
+Grass: yellow-green, olive and cool green overlapping horizontal/diagonal flat-brush strokes that follow the slope, with a few upright accents only in the nearest foreground.
+Road: restrained warm pale-gray and cream sweeping dabs that follow its curve.
+Cows, buses, fences: economical small blocks of paint with sufficient silhouette and color identity.
+Distance reduces detail and contrast, foreground carries stronger impasto. Paint texture should be unmistakably visible at normal viewing size, substantial like the two game style references rather than a smooth realistic landscape.
+
+TONE / COLOR LOCKS:
+Retain bright natural daytime light from the photograph, snowy white highlights with visible detail, blue atmospheric mountain shadows, deep but open blue-green forest shadows, lively green meadow. Medium-high value range, controlled medium saturation, warm sunlit grass against cool mountains. No night conversion, amber autumn recoloring, blanket teal-orange grade, excessive black or blown snow. Pigment relief highlights are subtle and consistent, with a faint linen weave beneath thinner paint only.
+
+AVOID:
+Photographic remnants, smooth photorealistic textures, watercolor washes, pastel/chalk, pointillism, dots, pixel art, vector outlines, low-poly polygon rendering, plastic CGI, swirling sky patterns, uniform noise/grain over the entire image, mushy all-over blur, random unrelated scratches, heavy cracks, ornamental frame, lettering, watermark, game UI. Deliver the painting edge-to-edge.
