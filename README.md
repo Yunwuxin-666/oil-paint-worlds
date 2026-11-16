@@ -11,6 +11,10 @@ engine: three.js
 
 极光雪岭、秋日森林、雪山牧场、柏树麦田。基于 [Patch oil-paint](https://patch.gg/blendi/oil-paint) 二次开发，保留原始许可与来源说明。
 
+![四境漫游油画地图](public/world-map.png)
+
+左下角小地图显示当前区域与人物位置。点击小地图或按 **M** 展开，选择目的地后点击传送按钮；每个区域起点附近都有一座实体驿站，靠近后按 **G** 选择目的地。四区通过驿站分区加载，传送落在目的地驿站旁；同一标签页内保留麦田采色、作画和牧场互动进度。
+
 - WASD 移动，Shift 冲刺，空格跳跃，点击画面后鼠标转向，滚轮调整距离，Esc 释放鼠标。
 - 牧场和麦田使用 E 互动、V 全景 / 跟随、R 重置；柏树麦田可采集三色并返回画架作画。
 - [牧场资产参考](https://yunwuxin-666.github.io/oil-paint-worlds/alpine/assets.html) · [麦田资产参考](https://yunwuxin-666.github.io/oil-paint-worlds/village/assets.html)

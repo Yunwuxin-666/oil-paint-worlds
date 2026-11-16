@@ -4,6 +4,7 @@
 //   ?quality=low   lower pixel ratio and no volumetric shafts
 //   ?shafts=0 ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldTravel} from '../travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../../recipe.json';
 import RAPIER from '../figure/rapier/rapier.mjs';
@@ -178,6 +179,7 @@ function respawn() {
 }
 
 const game = createGame({props,player,camera,physics,RAPIER,respawn,capture:capture||q.has('clean')});
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:roadX,physics,animator,game,props,capture:capture||q.has('clean')});
 let overview=false;
 function toggleOverview(){
  overview=!follow.free;
@@ -228,11 +230,12 @@ function tick(dt) {
   shared.uFocus.value.copy(root);
   floor.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
+  travel.update(time,dt);
   frame.render(scene, camera);
 }
 
 window.lab = {
-  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: landscape.counts, heightAt, respawn, game, props, physics, scene, environment, landscape, way: Array.from({length:170},(_,i)=>[roadX(85-i),85-i]),
+  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: landscape.counts, heightAt, respawn, game, props, physics, scene, environment, landscape, travel, way: Array.from({length:170},(_,i)=>[roadX(85-i),85-i]),
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */

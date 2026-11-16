@@ -4,6 +4,7 @@
 //   ?quality=low   for slower machines: fewer pixels, no veil behind the aurora, less snow in the air
 //   ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldTravel} from '../travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../../recipe.json';
 import RAPIER from '../figure/rapier/rapier.mjs';
@@ -143,6 +144,7 @@ follow.pitch = -0.07;
 follow.lift = 1.5;
 follow.sink = 0.7;
 const input = new Input(renderer.domElement, { pads: !capture && !q.has('nopad') });
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:crestX,physics,animator,capture:capture||q.has('clean')});
 physics.step();
 // he has come up from the south: his tracks are already there behind him
 tracks.lay(crestX, START.z + 16, START.z + 0.4);
@@ -290,11 +292,12 @@ function tick(dt) {
   shared.uGlow.value.x = 1.0 + 0.2 * Math.sin(time * 0.11) + 0.1 * Math.sin(time * 0.37 + 1.0) + 0.07 * Math.sin(time * 1.1 + 2.0);
   snow.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
+  travel.update(time,dt);
   frame.render(scene, camera);
 }
 
 window.lab = {
-  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: { ...snow.counts, ...pines.counts, ...cabin.counts }, cabin, heightAt, crestX, tracks, sky,
+  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: { ...snow.counts, ...pines.counts, ...cabin.counts }, cabin, heightAt, crestX, tracks, sky, travel,
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */

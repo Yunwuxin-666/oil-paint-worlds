@@ -11,7 +11,7 @@ import { guard } from './no-pointer-lock.mjs';
 
 guard(chromium);
 const root = resolve(fileURLToPath(import.meta.url), '..', '..', 'dist');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.glb': 'model/gltf-binary', '.wasm': 'application/wasm' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.glb': 'model/gltf-binary', '.wasm': 'application/wasm' };
 const HOST = `<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe id="demo" src="/index.html?nopad" style="border:0;width:1280px;height:720px"></iframe><script>
   const frame = document.getElementById('demo'), log = [];
   window.log = log;
@@ -45,20 +45,25 @@ try {
   };
   check('opens on the aurora', (await shown(0)) === 'aurora');
   let mark = await page.evaluate(() => window.log.length);
-  await demo().click('#scenes button[data-scene="autumn"]');
+  const travelTo=async(id)=>{await demo().click('.atlas-head');await demo().click(`[data-destination="${id}"]`);await demo().click('.atlas-travel');};
+  await travelTo('autumn');
   check('the button opens the autumn wood', (await shown(mark)) === 'autumn');
   check('its address names the scene', demo().url().includes('scene=autumn'), demo().url().replace(/^.*\//, ''));
   for (const scene of ['alpine', 'village']) {
     mark = await page.evaluate(() => window.log.length);
-    await demo().click(`#scenes button[data-scene="${scene}"]`);
+    await travelTo(scene);
     check(`the button opens ${scene}`, (await shown(mark)) === scene);
     check(`${scene} is ready and selected`, await demo().evaluate((id) => window.lab.ready && document.querySelector('#scenes button.on')?.dataset.scene === id, scene));
   }
   mark = await page.evaluate(() => window.log.length);
-  await demo().click('#scenes button[data-scene="aurora"]');
+  await travelTo('aurora');
   check('the other button goes back to the aurora', (await shown(mark)) === 'aurora');
   check('the button for the picture showing is marked', await demo().evaluate(() => document.querySelector('#scenes button.on')?.dataset.scene === 'aurora'));
   check('no errors', errors.length === 0, errors.slice(0, 3).join(' | '));
+} catch (error) {
+  const page = browser.contexts()[0]?.pages()[0];
+  await page?.screenshot({path:'shots/world-map-iframe-error.png'});
+  throw error;
 } finally {
   await browser.close();
   server.close();

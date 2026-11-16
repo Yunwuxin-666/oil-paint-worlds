@@ -4,6 +4,7 @@
 //   ?quality=low   fewer leaves in the air, no sun in the mist
 //   ?shafts=0 ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldTravel} from './travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../recipe.json';
 import RAPIER from './figure/rapier/rapier.mjs';
@@ -110,6 +111,7 @@ follow.want = follow.distance = 11.8;
 follow.pitch = .12;
 follow.lift = .65;
 const input = new Input(renderer.domElement, { pads: !capture && !q.has('nopad') });
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:z=>way.reduce((best,p)=>Math.abs(p[1]-z)<Math.abs(best[1]-z)?p:best,way[0])[0],physics,animator,capture:capture||q.has('clean')});
 physics.step();
 lap('figure');
 
@@ -180,11 +182,12 @@ function tick(dt) {
   shared.uFocus.value.copy(root);
   floor.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
+  travel.update(time,dt);
   frame.render(scene, camera);
 }
 
 window.lab = {
-  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: forest.counts, heightAt, respawn, way,
+  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: forest.counts, heightAt, respawn, way, travel,
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */

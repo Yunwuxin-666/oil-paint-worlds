@@ -39,6 +39,11 @@ export class Input {
   }
 
   read(dt) {
+    if (this.suspended) {
+      this.keys.clear(); this.pressed.clear();
+      this.mouse.x = this.mouse.y = this.mouse.wheel = 0;
+      return {move:{x:0,y:0},walk:false,sprint:false,strafe:false,jump:false,look:{x:0,y:0},zoom:0,device:'keyboard'};
+    }
     if (this.override) return this.override(dt);
     const k = this.keys;
     let x = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
