@@ -48,6 +48,12 @@ try {
   await demo().click('#scenes button[data-scene="autumn"]');
   check('the button opens the autumn wood', (await shown(mark)) === 'autumn');
   check('its address names the scene', demo().url().includes('scene=autumn'), demo().url().replace(/^.*\//, ''));
+  for (const scene of ['alpine', 'village']) {
+    mark = await page.evaluate(() => window.log.length);
+    await demo().click(`#scenes button[data-scene="${scene}"]`);
+    check(`the button opens ${scene}`, (await shown(mark)) === scene);
+    check(`${scene} is ready and selected`, await demo().evaluate((id) => window.lab.ready && document.querySelector('#scenes button.on')?.dataset.scene === id, scene));
+  }
   mark = await page.evaluate(() => window.log.length);
   await demo().click('#scenes button[data-scene="aurora"]');
   check('the other button goes back to the aurora', (await shown(mark)) === 'aurora');

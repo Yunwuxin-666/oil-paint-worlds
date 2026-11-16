@@ -81,8 +81,8 @@ vec3 meadowColour(vec3 P, vec4 m, float r) {
 export async function createLand(shared) {
   const loader=new THREE.TextureLoader();
   const [meadowPaint,gravelPaint]=await Promise.all([
-    loader.loadAsync('/alpine/assets-v3/09-meadow-ground.png'),
-    loader.loadAsync('/alpine/assets-v3/08-river-gravel.png'),
+    loader.loadAsync('./alpine/assets-v3/09-meadow-ground.png'),
+    loader.loadAsync('./alpine/assets-v3/08-river-gravel.png'),
   ]);
   for(const t of [meadowPaint,gravelPaint]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.NoColorSpace;t.anisotropy=8;}
   shared.tMeadowPaint={value:meadowPaint};shared.tGravelPaint={value:gravelPaint};

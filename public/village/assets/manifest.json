@@ -1,0 +1,32 @@
+{
+  "reference": "../reference.png",
+  "style": "large directional oil brush strokes",
+  "seed": 339721,
+  "assets": [
+    {
+      "id": "01-cypress",
+      "transparent": true,
+      "prompt": "Use the attached painting as the locked color, architecture and directional oil brushwork reference. Van Gogh inspired golden wheat terraces, creamy limestone and terracotta, dark blue-green flame shaped cypresses, sage hedges, blue-grey layered ridges, pale butter-yellow sky. Large readable impasto strokes following each object's growth and construction, grouped color masses, no photoreal microdetail, no text, no collage. ONE isolated whole Mediterranean cypress, 13 metres tall and 2.1 metres wide, visible woody trunk reaching ground, asymmetrical slender flame silhouette with spiraling vertically rising blue-green brush ribbons. Full tree fully in frame, three-quarter eye level view. Transparent background, no ground plane, no other assets."
+    },
+    {
+      "id": "02-village-house",
+      "transparent": true,
+      "prompt": "Use the attached painting as the locked color, architecture and directional oil brushwork reference. Van Gogh inspired golden wheat terraces, creamy limestone and terracotta, dark blue-green flame shaped cypresses, sage hedges, blue-grey layered ridges, pale butter-yellow sky. Large readable impasto strokes following each object's growth and construction, grouped color masses, no photoreal microdetail, no text, no collage. ONE isolated two-storey rural limestone house, 7m wide, 6m deep, door 2.1m tall, warm cream plaster, muted terracotta gabled roof with correctly closed triangular gables, dark wooden door, small sage shutters and six inset windows, grounded stone foundation. Three quarter view showing front and right side. Transparent background, whole house fully in frame. No trees, people or other buildings."
+    },
+    {
+      "id": "03-wheat-clump",
+      "transparent": true,
+      "prompt": "Use the attached painting as the locked color, architecture and directional oil brushwork reference. Van Gogh inspired golden wheat terraces, creamy limestone and terracotta, dark blue-green flame shaped cypresses, sage hedges, blue-grey layered ridges, pale butter-yellow sky. Large readable impasto strokes following each object's growth and construction, grouped color masses, no photoreal microdetail, no text, no collage. ONE isolated irregular clump of mature golden wheat, 0.8 metres tall, 0.7m wide, stems with heavy bent ochre grain heads, painterly broad curved strokes and a few green lower leaves, natural growth not uniform spikes. Roots aligned on ground. Transparent background, whole clump visible, no dirt slab, no other assets."
+    },
+    {
+      "id": "04-olive-hedge",
+      "transparent": true,
+      "prompt": "Use the attached painting as the locked color, architecture and directional oil brushwork reference. Van Gogh inspired golden wheat terraces, creamy limestone and terracotta, dark blue-green flame shaped cypresses, sage hedges, blue-grey layered ridges, pale butter-yellow sky. Large readable impasto strokes following each object's growth and construction, grouped color masses, no photoreal microdetail, no text, no collage. ONE isolated low irregular Mediterranean olive/sage hedgerow clump, 2.5m wide and 1.4m high, visible branching dark woody base, sage silver green elongated foliage grouped in broad rhythmic strokes, pale warm sunlit tips and teal shadow. Three quarter view, transparent background, whole clump visible, no soil slab, no other assets."
+    },
+    {
+      "id": "05-scene-concept",
+      "transparent": false,
+      "prompt": "Use the attached painting as the locked color, architecture and directional oil brushwork reference. Van Gogh inspired golden wheat terraces, creamy limestone and terracotta, dark blue-green flame shaped cypresses, sage hedges, blue-grey layered ridges, pale butter-yellow sky. Large readable impasto strokes following each object's growth and construction, grouped color masses, no photoreal microdetail, no text, no collage. A landscape-format 3D playable game scene concept matching the composition of the reference painting: foreground curved cream dirt footpath descending through flowing gold wheat terraces; middle ground cluster of 14 small cream limestone terracotta roof houses, open navigable central lane, tall dark cypresses marking the village; layered blue-grey mountains in the background and pale yellow morning sky. A single anatomically proportionate 1.8m traveler in blue cape and straw hat on the foreground path for scale, about 18 percent of image height, seen from behind. Doors 2.1m, houses 6-9m, cypresses 12-20m. Cohesive solid geometry with large oil strokes, warm sun and cool shadow, subtle linen support. No HUD, no labels. Landscape 3:2."
+    }
+  ]
+}

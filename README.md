@@ -5,6 +5,22 @@ engine: three.js
 
 # Oil paint
 
+## 油画漫游 · 四个可游玩世界
+
+[在线试玩](https://yunwuxin-666.github.io/oil-paint-worlds/?scene=village)
+
+极光雪岭、秋日森林、雪山牧场、柏树麦田。基于 [Patch oil-paint](https://patch.gg/blendi/oil-paint) 二次开发，保留原始许可与来源说明。
+
+- WASD 移动，Shift 冲刺，空格跳跃，点击画面后鼠标转向，滚轮调整距离，Esc 释放鼠标。
+- 牧场和麦田使用 E 互动、V 全景 / 跟随、R 重置；柏树麦田可采集三色并返回画架作画。
+- [牧场资产参考](https://yunwuxin-666.github.io/oil-paint-worlds/alpine/assets.html) · [麦田资产参考](https://yunwuxin-666.github.io/oil-paint-worlds/village/assets.html)
+
+本地：`pnpm install --frozen-lockfile`，`pnpm run build`，`pnpm run serve`，访问 `http://127.0.0.1:5405/`。克隆时需安装 Git LFS 并运行 `git lfs pull` 获取图片和角色模型。
+
+部署：GitHub Pages 使用 GitHub Actions；推送 `main` 后，`.github/workflows/pages.yml` 自动拉取 LFS 资产、构建并发布 `dist`。场景资源使用相对路径，支持仓库子目录。
+
+下方保留原项目说明；其中“两场景”指上游原版。
+
 Draws a three.js scene as thick oil paint, stroke by stroke: every leaf, trunk, drift of snow, ray of the aurora and fold of cloth is a dab of the brush pinned to the world, so the paint stays on things as you move. The demo is two walks with the same wanderer: a ridge of snow under the aurora, with a cabin at the end of it, and an autumn wood.
 
 ![A cloaked wanderer with a lantern on a snow ridge under the aurora, a horn of rock ahead](shots/readme.jpg)

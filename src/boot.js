@@ -12,6 +12,7 @@ for (const button of switcher?.querySelectorAll('button') ?? []) {
   button.addEventListener('keydown', (e) => e.preventDefault());
   button.addEventListener('focus', () => button.blur());
 }
-if (SCENE === 'alpine') await import('./alpine/main.js');
+if (SCENE === 'village') await import('./village/main.js');
+else if (SCENE === 'alpine') await import('./alpine/main.js');
 else if (SCENE === 'autumn') await import('./main.js');
 else await import('./night/main.js');
