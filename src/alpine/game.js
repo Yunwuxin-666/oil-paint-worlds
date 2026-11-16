@@ -3,7 +3,7 @@ import { GATE, LOOKOUT, BUS } from './config.js';
 import { heightAt } from './land.js';
 import './style.css';
 
-export function createGame({props,player,camera,physics,RAPIER,respawn,capture}){
+export function createGame({props,player,camera,physics,RAPIER,respawn,capture,signal}){
  const state={started:false,complete:false,viewpoint:false,gateOpen:false,fed:[],elapsed:0};
  let pending=false,resetPending=false,gateAngle=0,message='欢迎来到雪山牧场。先到小巴旁领取饲料。',messageUntil=9,time=0;
  const interaction=document.createElement('button');interaction.id='pasture-action';interaction.type='button';interaction.hidden=true;
@@ -55,7 +55,7 @@ export function createGame({props,player,camera,physics,RAPIER,respawn,capture})
    if(e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
    if(e.code==='KeyE')pending=true;
    if(e.code==='KeyR')resetPending=true;
- });
+ },{signal});
  const markerNodes=new Map();
  for(const t of targets){const el=document.createElement('span');el.className='pasture-marker';markers.append(el);markerNodes.set(t.id,el);}
  function update(dt){

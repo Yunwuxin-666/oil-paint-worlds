@@ -42,6 +42,7 @@ export function createShade(renderer, shared, still, { sun = SUN, size = [4096, 
   shared.tFigShade.value = fig.depthTexture;
   const depthOnly = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
   return {
+    dispose() { wood.dispose(); fig.dispose(); depthOnly.dispose(); },
     update(scene, at) {
       figCam.position.set(at.x, at.y + 1.0, at.z).addScaledVector(sun, 30);
       figCam.lookAt(at.x, at.y + 1.0, at.z);

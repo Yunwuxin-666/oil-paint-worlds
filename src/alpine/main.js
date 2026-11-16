@@ -4,6 +4,7 @@
 //   ?quality=low   lower pixel ratio and no volumetric shafts
 //   ?shafts=0 ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldScope} from '../travel/lifecycle.js';
 import {createWorldTravel} from '../travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../../recipe.json';
@@ -30,6 +31,9 @@ import { Player } from '../figure/player.js';
 import { Input } from '../figure/input.js';
 import { Follow } from '../figure/camera.js';
 
+export async function startWorld(){
+const scope=createWorldScope();
+const addEventListener=scope.listen, setTimeout=scope.delay;
 const q = new URLSearchParams(location.search);
 const capture = q.has('capture');
 // ?quality wins; otherwise Patch's performance mode, where there is one
@@ -138,7 +142,7 @@ follow.pitch = .18;
 follow.want = follow.distance = 13;
 follow.side = .65;
 follow.lift = 1.5;
-const input = new Input(renderer.domElement, { pads: !capture && !q.has('nopad') });
+const input = new Input(document.getElementById('view'), { pads: !capture && !q.has('nopad') });
 physics.step();
 lap('figure');
 
@@ -154,7 +158,7 @@ function applyQuality() {
   renderer.setSize(innerWidth,innerHeight); frame.resize();
 }
 applyQuality();
-window.patch?.addEventListener?.('qualitychange', applyQuality);
+window.patch?.addEventListener?.('qualitychange', applyQuality, {signal:scope.signal});
 
 // Meadow wind drives the cape; grass and airborne seeds use the same prevailing direction.
 const wind = { x: WIND.x, z: WIND.y };
@@ -178,8 +182,8 @@ function respawn() {
   animator.enter(animator.locoState({ strafe: false }), 0.1);
 }
 
-const game = createGame({props,player,camera,physics,RAPIER,respawn,capture:capture||q.has('clean')});
-const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:roadX,physics,animator,game,props,capture:capture||q.has('clean')});
+const game = createGame({props,player,camera,physics,RAPIER,respawn,capture:capture||q.has('clean'),signal:scope.signal});
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:roadX,physics,animator,game,props,capture:capture||q.has('clean'),signal:scope.signal});
 let overview=false;
 function toggleOverview(){
  overview=!follow.free;
@@ -199,7 +203,7 @@ function tick(dt) {
   if(environment.inWater){inp.walk=true;inp.sprint=false;}
   player.update(dt, inp, follow.yaw);
   // Keep the wanderer inside the walkable pasture and recover from falling below its heightfield.
-  if (player.feet.y < heightAt(player.feet.x,player.feet.z)-5 || Math.abs(player.feet.x)>BOUNDS.x || player.feet.z>BOUNDS.south || player.feet.z<BOUNDS.north) respawn();
+  if (player.feet.y < heightAt(player.feet.x,player.feet.z)-5) travel.recover();
   const root = player.visualRoot(dt);
   man.object.position.copy(root);
   man.object.rotation.set(0, player.yaw, 0);
@@ -311,3 +315,6 @@ block.ready();
 window.lab.ready = true;
 // for the measuring tools
 window.__block = { ready: true, block, timings, set() {} };
+
+return {lab:window.lab,dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
+}

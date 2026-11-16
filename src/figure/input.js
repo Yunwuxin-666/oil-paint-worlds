@@ -3,6 +3,9 @@
 //   jump (pressed this frame), look: {x, y} (radians this frame), zoom (wheel steps this frame)
 export class Input {
   constructor(el, { pads = true } = {}) {
+    this.controller = new AbortController();
+    const addEventListener = (type, fn, options) => window.addEventListener(type, fn, {...options, signal:this.controller.signal});
+    const onElement = (type,fn,options) => el.addEventListener(type,fn,{...options,signal:this.controller.signal});
     this.el = el;
     this.pads = pads; // off in headless checks: this PC's real gamepad shows up in headless browsers too
     this.keys = new Set();
@@ -25,18 +28,20 @@ export class Input {
     addEventListener('keydown', down);
     addEventListener('keyup', up);
     addEventListener('blur', () => this.keys.clear());
-    el.addEventListener('mousedown', (e) => {
+    onElement('mousedown', (e) => {
       if (e.button === 2) this.mouse.right = true;
       // a click locks the mouse for looking, except while a panel or the replay wants the mouse
       if (e.button === 0 && this.lockable && document.pointerLockElement !== el) el.requestPointerLock?.()?.catch?.(() => {});
     });
     addEventListener('mouseup', (e) => { if (e.button === 2) this.mouse.right = false; });
-    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    onElement('contextmenu', (e) => e.preventDefault());
     addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === el || this.mouse.right) { this.mouse.x += e.movementX; this.mouse.y += e.movementY; }
     });
-    el.addEventListener('wheel', (e) => { this.mouse.wheel += Math.sign(e.deltaY); e.preventDefault(); }, { passive: false });
+    onElement('wheel', (e) => { this.mouse.wheel += Math.sign(e.deltaY); e.preventDefault(); }, { passive: false });
   }
+
+  destroy() { this.controller.abort(); this.keys.clear(); this.pressed.clear(); this.lockable=false; }
 
   read(dt) {
     if (this.suspended) {

@@ -1,18 +1,50 @@
-// Starts the picture the address asks for (src/scenes.js) and wires the two buttons that change it.
-import { SCENE, showScene } from './scenes.js';
+import {SCENE,SCENE_IDS,setScene,showScene} from './scenes.js';
+import {Cache} from 'three';
+Cache.enabled=true;
 
-document.documentElement.dataset.scene = SCENE;
-const q = new URLSearchParams(location.search);
-const switcher = document.getElementById('scenes');
-if (q.has('capture') || q.has('clean')) switcher?.remove();
-for (const button of switcher?.querySelectorAll('button') ?? []) {
-  button.classList.toggle('on', button.dataset.scene === SCENE);
-  button.addEventListener('click', () => showScene(button.dataset.scene));
-  // Space is jump: a button must never be left holding the keyboard
-  button.addEventListener('keydown', (e) => e.preventDefault());
-  button.addEventListener('focus', () => button.blur());
+const loaders={aurora:()=>import('./night/main.js'),autumn:()=>import('./main.js'),alpine:()=>import('./alpine/main.js'),village:()=>import('./village/main.js')};
+let runtime,busy=false;
+function updateNavigation(){
+ document.documentElement.dataset.scene=SCENE;
+ for(const el of document.querySelectorAll('#scenes button'))el.classList.toggle('on',el.dataset.scene===SCENE);
 }
-if (SCENE === 'village') await import('./village/main.js');
-else if (SCENE === 'alpine') await import('./alpine/main.js');
-else if (SCENE === 'autumn') await import('./main.js');
-else await import('./night/main.js');
+function ensureLoading(){if(!document.getElementById('loading')){const el=document.createElement('div');el.id='loading';el.textContent='沿山路前行…';document.body.append(el)}if(!document.getElementById('hint')){const el=document.createElement('div');el.id='hint';document.body.append(el)}const hint=document.getElementById('hint');hint.className='';hint.textContent='WASD 移动 · M 地图 · G 驿站';}
+async function switchScene(id,options={}){
+ if(busy||id===SCENE||!SCENE_IDS.includes(id))return false;
+ busy=true;window.worldTravel.busy=true;
+ const before=runtime.lab,held=[...before.input.keys],look={pitch:before.follow.pitch,want:before.follow.want,side:before.follow.side,lift:before.follow.lift};
+ const released=new Set(),handoff=new AbortController(),speed=before.player.speed,orbit=before.follow.yaw-before.player.yaw;
+ window.addEventListener('keyup',e=>released.add(e.code),{capture:true,signal:handoff.signal});
+ let veil;
+ try{
+  before.travel.save();before.input.suspended=true;before.renderer.setAnimationLoop(null);
+  before.frame.render(before.scene,before.camera);
+  veil=document.createElement('div');veil.id='world-transition';
+  const image=document.createElement('img');image.src=before.renderer.domElement.toDataURL('image/png');veil.append(image);
+  const text=document.createElement('span');text.textContent=options.walk?'沿连接道前行…':'正在前往驿站…';veil.append(text);document.body.append(veil);
+  const module=await loaders[id]();
+  runtime.dispose();window.lab={ready:false};
+  setScene(id);const url=new URL(location.href);url.searchParams.set('scene',id);url.searchParams.delete('arrival');if(options.arrival)url.searchParams.set('arrival','waystation');history.replaceState({scene:id},'',url);updateNavigation();ensureLoading();
+  runtime=await module.startWorld();
+  if(options.walk){
+   const route=runtime.lab.travel.walking.routes.find(r=>r.to===options.walk.from);
+   if(route){
+    const p=route.points[Math.max(0,route.points.length-8)],toward=route.points[Math.max(0,route.points.length-14)];
+    runtime.lab.teleport(p.x,p.z,toward.x,toward.z);Object.assign(runtime.lab.follow,look);runtime.lab.follow.distance=look.want;runtime.lab.follow.yaw=runtime.lab.player.yaw+orbit;
+    runtime.lab.input.keys=new Set([...runtime.lab.input.keys,...held.filter(k=>!released.has(k)&&!['KeyM','KeyG'].includes(k))]);
+    if(['KeyW','KeyA','KeyS','KeyD'].some(k=>runtime.lab.input.keys.has(k))){const p=runtime.lab.player;p.speed=speed;p.vel.set(Math.sin(p.yaw)*speed,0,Math.cos(p.yaw)*speed);p.mode='move';}
+    // The camera is turned along the destination trail; forward remains forward.
+    runtime.lab.follow.pivot.set(0,0,0);runtime.lab.step(1/60,2);
+   }
+  }
+  window.worldTravel.visits.push({from:before.travel.regionId,to:id,walk:!!options.walk});
+  veil.classList.add('arrived');setTimeout(()=>veil.remove(),300);
+  return true;
+ }catch(error){veil?.remove();busy=false;window.worldTravel.busy=false;throw error;}
+ finally{handoff.abort();busy=false;window.worldTravel.busy=false;}
+}
+window.worldTravel={switchScene,preload:id=>loaders[id]?.(),busy:false,visits:[]};
+const q=new URLSearchParams(location.search);if(q.has('capture')||q.has('clean'))document.getElementById('scenes')?.remove();
+for(const el of document.querySelectorAll('#scenes button')){el.onclick=()=>showScene(el.dataset.scene);el.onkeydown=e=>e.preventDefault();el.onfocus=()=>el.blur();}
+updateNavigation();runtime=await (await loaders[SCENE]()).startWorld();
+window.addEventListener('popstate',()=>{const id=new URLSearchParams(location.search).get('scene');if(id&&id!==SCENE)switchScene(id);});

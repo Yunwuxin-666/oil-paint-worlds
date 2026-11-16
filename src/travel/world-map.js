@@ -2,13 +2,16 @@ import * as THREE from 'three';
 import {SCENE,showScene} from '../scenes.js';
 import {REGIONS,regionById} from './regions.js';
 import {createWaystation} from './waystation.js';
+import {createWalkingConnections} from './walk-connections.js';
 import './world-map.css';
 
 const PROGRESS_KEY='painted-worlds-progress-v1';
 const safeRead=()=>{try{return JSON.parse(sessionStorage.getItem(PROGRESS_KEY))??{}}catch{return {}}};
-export function createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt,physics,animator,game,props,capture}){
+export function createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt,physics,animator,game,props,capture,signal}){
  const region=regionById(SCENE),saved=safeRead();let expanded=false,selected=SCENE,traveling=false,clock=0,nextDOM=0;
+ physics.step();
  const station=createWaystation({shared,scene,player,heightAt,spawn,pathAt});
+ physics.step();
  // Retain each region's small activity when travelling elsewhere in this tab.
  if(game?.state&&saved[SCENE]){
   Object.assign(game.state,saved[SCENE]);
@@ -25,7 +28,8 @@ export function createWorldTravel({shared,scene,player,input,follow,camera,heigh
   const url=new URL(location.href);url.searchParams.delete('arrival');history.replaceState(null,'',url);
  }
  arrive();
- if(capture)return {station,update(time){station.update(time)},save,open(){},close(){}};
+ const walking=createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,capture,onCross(to,walk){save();window.worldTravel.switchScene(to,{walk});}});
+ if(capture)return {station,walking,regionId:SCENE,recover:walking.recover,update(time,dt){station.update(time);walking.update(time,dt)},save,open(){},close(){}};
  const atlas=document.createElement('section');atlas.id='world-atlas';atlas.setAttribute('aria-label','四境漫游世界地图');
  atlas.style.setProperty('--atlas-image',`url("${new URL('./world-map.png',location.href).href}")`);
  atlas.innerHTML=`<button type="button" class="atlas-head" aria-label="展开世界地图" aria-expanded="false" aria-controls="atlas-details"><span class="atlas-heading"><strong>四境漫游</strong><small>世界地图</small></span><span class="atlas-head-action"><kbd>M</kbd><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="atlas-close-icon" aria-hidden="true">×</span></span></button><div class="atlas-sheet"><div class="atlas-map-column"><div class="atlas-picture"><img src="./world-map.png" alt="四区相连的油画地图：北部雪岭、东部牧场、西部秋林、南部麦田">${REGIONS.map(r=>`<button type="button" class="atlas-point" data-region="${r.id}" style="left:${r.x/12}%;top:${r.y/8}%" aria-label="选择${r.name}" aria-current="${r.id===SCENE}">${r.name}</button>`).join('')}<i class="atlas-player" aria-hidden="true"></i></div><div class="atlas-caption"><b><i aria-hidden="true"></i>${region.name}</b><span class="atlas-mini-help">世界地图 <kbd>M</kbd></span><span class="atlas-legend">白色箭头 · 你的位置</span></div></div><div class="atlas-detail" id="atlas-details"><p class="atlas-list-label">选择目的地</p><div class="atlas-destinations">${REGIONS.map(r=>`<button type="button" data-destination="${r.id}"><span class="atlas-region-thumb" style="background-position:${r.x/12}% ${r.y/8}%" aria-hidden="true"></span><span class="atlas-region-name">${r.name}<small>${r.id===SCENE?'当前位置':r.station}</small></span><span class="atlas-region-state" aria-hidden="true">${r.id===SCENE?'●':'↗'}</span></button>`).join('')}</div><div class="atlas-selection"><p class="eyebrow"></p><h2></h2><p class="description"></p></div><button type="button" class="atlas-travel"></button><p class="atlas-travel-note">抵达驿站，继续你的旅程</p></div></div>`;
@@ -52,11 +56,12 @@ export function createWorldTravel({shared,scene,player,input,follow,camera,heigh
   if(expanded&&e.code!=='Tab'&&e.code!=='Enter'&&e.code!=='Space'){e.preventDefault();e.stopImmediatePropagation();}
   if(expanded&&e.code==='Tab')e.stopImmediatePropagation();
   if(expanded&&(e.code==='Space'||e.code==='Enter'))e.stopImmediatePropagation();
- },true);
- addEventListener('pagehide',save);
+ },{capture:true,signal});
+ addEventListener('pagehide',save,{signal});
  select(SCENE);
  const projected=new THREE.Vector3();
- return {station,open,close,travel,save,get expanded(){return expanded},update(time,dt){
+ return {station,walking,regionId:SCENE,recover:walking.recover,open,close,travel,save,get expanded(){return expanded},update(time,dt){
+  walking.update(time,dt);
   station.update(time);clock+=dt;if(clock<nextDOM)return;nextDOM=clock+.08;
   const d=Math.hypot(player.feet.x-station.x,player.feet.z-station.z);portalAction.hidden=expanded||d>=3.4;
   projected.set(station.x,station.y+3.65,station.z).project(camera);label.hidden=expanded||d>65||projected.z<0||projected.z>1||Math.abs(projected.x)>.92||Math.abs(projected.y)>.88;

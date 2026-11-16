@@ -19,7 +19,7 @@ try{
  await page.screenshot({path:'shots/world-map-expanded.png'});
  for(const id of ['alpine','aurora','autumn','village']){
   await page.locator(`[data-destination="${id}"]`).click();
-  await Promise.all([page.waitForNavigation(),page.locator('.atlas-travel').click()]);await ready();
+  await page.locator('.atlas-travel').click();await page.waitForFunction(id=>window.lab?.ready&&document.documentElement.dataset.scene===id,id,{timeout:120000});await ready();
   const arrival=await page.evaluate(()=>({id:document.documentElement.dataset.scene,d:Math.hypot(lab.player.feet.x-lab.travel.station.landing.x,lab.player.feet.z-lab.travel.station.landing.z),y:lab.player.feet.y,ground:lab.heightAt(lab.player.feet.x,lab.player.feet.z),station:{x:lab.travel.station.x,z:lab.travel.station.z}}));
   assert.equal(arrival.id,id);assert(arrival.d<.4,'arrival at destination waystation');assert(Math.abs(arrival.y-arrival.ground)<.3,'arrival grounded');
   await page.screenshot({path:`shots/world-portal-${id}.png`});

@@ -108,6 +108,7 @@ export function createFrame(renderer, shared, { samples = 4 } = {}) {
   const viewProj = new THREE.Matrix4();
 
   return {
+    dispose() { target.dispose(); material.dispose(); quad.geometry.dispose(); },
     target,
     uniforms,
     resize() {

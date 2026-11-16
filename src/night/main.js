@@ -4,6 +4,7 @@
 //   ?quality=low   for slower machines: fewer pixels, no veil behind the aurora, less snow in the air
 //   ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldScope} from '../travel/lifecycle.js';
 import {createWorldTravel} from '../travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../../recipe.json';
@@ -28,6 +29,9 @@ import { createDrift } from './drift.js';
 import { createPines } from './pines.js';
 import { createCabin } from './cabin.js';
 
+export async function startWorld(){
+const scope=createWorldScope();
+const addEventListener=scope.listen, setTimeout=scope.delay;
 const q = new URLSearchParams(location.search);
 const capture = q.has('capture');
 
@@ -143,8 +147,8 @@ follow.yaw = Math.PI;
 follow.pitch = -0.07;
 follow.lift = 1.5;
 follow.sink = 0.7;
-const input = new Input(renderer.domElement, { pads: !capture && !q.has('nopad') });
-const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:crestX,physics,animator,capture:capture||q.has('clean')});
+const input = new Input(document.getElementById('view'), { pads: !capture && !q.has('nopad') });
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:crestX,physics,animator,capture:capture||q.has('clean'),signal:scope.signal});
 physics.step();
 // he has come up from the south: his tracks are already there behind him
 tracks.lay(crestX, START.z + 16, START.z + 0.4);
@@ -166,7 +170,7 @@ function applyQuality() {
   drift.geometry.instanceCount = low ? 900 : 2400;
 }
 applyQuality();
-window.patch?.addEventListener?.('qualitychange', applyQuality);
+window.patch?.addEventListener?.('qualitychange', applyQuality, {signal:scope.signal});
 
 const wind = { x: WIND.x, z: WIND.y };
 let time = 0;
@@ -238,8 +242,8 @@ function tick(dt) {
   const fp = first * first * (3 - 2 * first);
   cabin.update(time);
   player.update(dt, inp, follow.yaw);
-  // off the ridge and into the fjord, or off the map: he starts again
-  if (player.feet.y < 1.5 || Math.max(Math.abs(player.feet.x), Math.abs(player.feet.z)) > EXTENT - 30) place(spawn.x, spawn.z, Math.PI);
+  // A fall into the fjord returns him to his latest safe footing, not the camp.
+  if (player.feet.y < 1.5) travel.recover();
   const root = player.visualRoot(dt);
   man.object.position.copy(root);
   man.object.rotation.set(0, player.yaw, 0);
@@ -297,7 +301,7 @@ function tick(dt) {
 }
 
 window.lab = {
-  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: { ...snow.counts, ...pines.counts, ...cabin.counts }, cabin, heightAt, crestX, tracks, sky, travel,
+  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: { ...snow.counts, ...pines.counts, ...cabin.counts }, cabin, heightAt, crestX, tracks, sky, travel, scene, physics,
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */
@@ -368,3 +372,6 @@ if (q.has('clean') || capture) document.getElementById('hint')?.remove();
 block.ready();
 window.lab.ready = true;
 window.__block = { ready: true, block, timings, set() {} };
+
+return {lab:window.lab,dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
+}

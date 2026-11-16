@@ -4,6 +4,7 @@
 //   ?quality=low   fewer leaves in the air, no sun in the mist
 //   ?shafts=0 ?canvas=0 ?impasto=0..2    parts of the finish, for comparing
 import * as THREE from 'three';
+import {createWorldScope} from './travel/lifecycle.js';
 import {createWorldTravel} from './travel/world-map.js';
 import { patchBlock } from 'patch-block';
 import recipe from '../recipe.json';
@@ -24,6 +25,9 @@ import { Player } from './figure/player.js';
 import { Input } from './figure/input.js';
 import { Follow } from './figure/camera.js';
 
+export async function startWorld(){
+const scope=createWorldScope();
+const addEventListener=scope.listen, setTimeout=scope.delay;
 const q = new URLSearchParams(location.search);
 const capture = q.has('capture');
 // ?quality wins; otherwise Patch's performance mode, where there is one
@@ -110,8 +114,8 @@ follow.yaw = Math.PI;
 follow.want = follow.distance = 11.8;
 follow.pitch = .12;
 follow.lift = .65;
-const input = new Input(renderer.domElement, { pads: !capture && !q.has('nopad') });
-const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:z=>way.reduce((best,p)=>Math.abs(p[1]-z)<Math.abs(best[1]-z)?p:best,way[0])[0],physics,animator,capture:capture||q.has('clean')});
+const input = new Input(document.getElementById('view'), { pads: !capture && !q.has('nopad') });
+const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:z=>way.reduce((best,p)=>Math.abs(p[1]-z)<Math.abs(best[1]-z)?p:best,way[0])[0],physics,animator,capture:capture||q.has('clean'),signal:scope.signal});
 physics.step();
 lap('figure');
 
@@ -125,7 +129,7 @@ function applyQuality() {
   leaves.mesh.geometry.instanceCount = low ? 900 : 2400;
 }
 applyQuality();
-window.patch?.addEventListener?.('qualitychange', applyQuality);
+window.patch?.addEventListener?.('qualitychange', applyQuality, {signal:scope.signal});
 
 // the wind as the cloak feels it: the same bands the leaves move in
 const wind = { x: WIND.x, z: WIND.y };
@@ -153,8 +157,8 @@ function tick(dt) {
   time += dt;
   const inp = input.read(dt);
   player.update(dt, inp, follow.yaw);
-  // the wood has no wall: far from the way he is turned gently back, and under the world he starts again
-  if (player.feet.y < heightAt(player.feet.x, player.feet.z) - 6 || wayDist(player.feet.x, player.feet.z) > 78) respawn();
+  // Connections handle normal travel; only falling below the ground needs recovery.
+  if (player.feet.y < heightAt(player.feet.x, player.feet.z) - 6) travel.recover();
   const root = player.visualRoot(dt);
   man.object.position.copy(root);
   man.object.rotation.set(0, player.yaw, 0);
@@ -187,7 +191,7 @@ function tick(dt) {
 }
 
 window.lab = {
-  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: forest.counts, heightAt, respawn, way, travel,
+  THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: forest.counts, heightAt, respawn, way, travel, scene, physics,
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */
@@ -262,3 +266,6 @@ block.ready();
 window.lab.ready = true;
 // for the measuring tools
 window.__block = { ready: true, block, timings, set() {} };
+
+return {lab:window.lab,dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
+}
