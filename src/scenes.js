@@ -1,6 +1,6 @@
 // Each region has a repeatable entry point; the world host releases it before a handoff.
 const q = new URLSearchParams(location.search);
-export const SCENE_IDS = ['aurora', 'autumn', 'alpine', 'village'];
+export const SCENE_IDS = ['aurora', 'autumn', 'alpine', 'village','arches'];
 export let SCENE = SCENE_IDS.includes(q.get('scene')) ? q.get('scene') : 'aurora';
 export function setScene(scene){if(SCENE_IDS.includes(scene))SCENE=scene;}
 

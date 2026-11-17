@@ -9,7 +9,8 @@ export const WALK_LINKS={
  aurora:[{to:'alpine',z:-50,endOffset:14},{to:'autumn',z:320}],
  alpine:[{to:'aurora',z:-150},{to:'village',z:150}],
  autumn:[{to:'aurora',z:-150},{to:'village',z:150}],
- village:[{to:'alpine',z:-150},{to:'autumn',z:150}],
+ village:[{to:'alpine',z:-150},{to:'autumn',z:150},{to:'arches',z:45,endOffset:95}],
+ arches:[{to:'village',z:150}],
 };
 
 // Terrain-aware A*: roads avoid existing trunks, buildings and unclimbable slopes.
@@ -18,7 +19,7 @@ function plan({player,heightAt,pathAt,startZ,endZ,endOffset=0}){
  const cell=2,start={x:Math.round(pathAt(startZ)/cell),z:Math.round(startZ/cell)},goal={x:Math.round((pathAt(endZ)+endOffset)/cell),z:Math.round(endZ/cell)};
  const z0=Math.min(start.z,goal.z)-4,z1=Math.max(start.z,goal.z)+4;
  const centres=Array.from({length:z1-z0+1},(_,i)=>pathAt((z0+i)*cell)/cell);
- const x0=Math.floor(Math.min(...centres)-16),x1=Math.ceil(Math.max(...centres)+16);
+ const x0=Math.floor(Math.min(...centres,start.x,goal.x)-16),x1=Math.ceil(Math.max(...centres,start.x,goal.x)+16);
  const nodes=new Map(),heap=[];
  const push=n=>{heap.push(n);let i=heap.length-1;while(i){const p=(i-1)>>1;if(heap[p].f<=n.f)break;heap[i]=heap[p];i=p;}heap[i]=n;};
  const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let c=i*2+1;if(c+1<heap.length&&heap[c+1].f<heap[c].f)c++;if(heap[c].f>=last.f)break;heap[i]=heap[c];i=c;}heap[i]=last;}return top;};
@@ -64,7 +65,7 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
  for(const route of routes){route.remaining=new Array(route.points.length).fill(0);for(let i=route.points.length-2;i>=0;i--){const a=route.points[i],c=route.points[i+1];route.remaining[i]=route.remaining[i+1]+Math.hypot(a.x-c.x,a.z-c.z);}}
  const night=current==='aurora';
  const b=createKit(shared,{seed:583232,haze:true,palettes:{
-  path:night?{l:[.59,.75,.74],m:[.32,.51,.56],s:[.14,.28,.38]}:{l:[.86,.80,.60],m:[.64,.61,.43],s:[.35,.42,.33]},
+  path:current==='arches'?{l:[1,.78,.46],m:[.83,.58,.31],s:[.57,.37,.25]}:night?{l:[.59,.75,.74],m:[.32,.51,.56],s:[.14,.28,.38]}:{l:[.86,.80,.60],m:[.64,.61,.43],s:[.35,.42,.33]},
   wood:{l:[.65,.48,.27],m:[.40,.30,.19],s:[.17,.24,.21]},
  },light:`vec3 kitPaint(vec3 P,vec3 Nn,int k,float tone,float r){float lit=clamp(dot(Nn,uSunDir)*.6+.4,0.,1.);return paint3(PAL_L[k],PAL_M[k],PAL_S[k],lit,r)*tone;}`});
  const signs=[];
@@ -140,8 +141,8 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
   const forward=temp.copy(end).sub(before).setY(0).normalize().dot(player.vel);
   status.textContent=active?`${active.spec.name} · ${regionById(route.to).name}方向`:d<5?`山路通往${regionById(route.to).name} · 约 ${Math.round(route.remaining[i])} 米`:'';
   if(d<7&&i>route.points.length*.68)window.worldTravel?.preload(route.to);
-  if(active&&Math.abs(active.project(p.x,p.z).u)>55&&active.progress(p.x,p.z)>105)status.textContent=`沿谷中小路前往${regionById(route.to).name}`;
-  if(clock>2.5&&active===route.boundary&&Math.abs(active.project(p.x,p.z).u)<55&&active.progress(p.x,p.z)>120&&forward>.15&&player.grounded){
+  if(active&&Math.abs(active.project(p.x,p.z).u)>active.sharedWidth&&active.progress(p.x,p.z)>105)status.textContent=`沿谷中小路前往${regionById(route.to).name}`;
+  if(clock>2.5&&active===route.boundary&&Math.abs(active.project(p.x,p.z).u)<active.sharedWidth&&active.progress(p.x,p.z)>120&&forward>.15&&player.grounded){
    loading=true;status.textContent=`${active.spec.name} · 前往${regionById(route.to).name}`;
    const local=active.project(p.x,p.z);onCross(route.to,{from:current,boundary:active.spec.id,s:local.s,u:local.u,y:p.y-active.end.y,yaw:active.yaw});
   }

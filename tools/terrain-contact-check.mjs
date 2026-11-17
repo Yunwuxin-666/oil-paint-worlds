@@ -9,7 +9,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROME,headless:
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],proof=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
- for(const scene of ['village','alpine','autumn','aurora']){
+ for(const scene of ['village','alpine','autumn','aurora','arches']){
   await page.goto(`${process.env.WORLD_URL??'http://127.0.0.1:5405/'}?scene=${scene}&nopad`);await page.waitForFunction(()=>window.lab?.ready,null,{timeout:180000});
   await page.evaluate(()=>lab.renderer.setAnimationLoop(null));
   const result=await page.evaluate(()=>{
@@ -22,9 +22,9 @@ try{
    const flat=new T.Scene();flat.add(new T.Mesh(new T.PlaneGeometry(2,2),material));const pixels=new Float32Array(4);
    for(const route of L.travel.walking.routes){
     const b=route.boundary;let maxPhysics=0,maxVisibleAbove=0,count=0,decorations=0;
-    for(const progress of [-25,-5,5,15,30,48,64,95])for(const across of [-95,-62,-27,0,27,62,95]){
+    for(const progress of [-25,-5,5,15,30,48,64,95])for(const across of [-.86,-.56,-.245,0,.245,.56,.86]){
      const s=b.sEnd+b.sign*progress,u=b.path(s)+across;if(Math.abs(u)>106)continue;
-     const p=b.point(u,s,b.height(u,s));
+     const acrossU=across*b.halfWidth;const actualU=b.path(s)+acrossU;const p=b.point(actualU,s,b.height(actualU,s));
      L.teleport(p.x,p.z,p.x+b.axis.x,p.z+b.axis.z);L.input.keys.clear();L.step(1/60,2);
      const ray=new R.Ray({x:p.x,y:p.y+90,z:p.z},{x:0,y:-1,z:0});
      const hit=L.physics.castRay(ray,150,true,undefined,undefined,L.player.collider,undefined,c=>c.handle===b.groundCollider.handle);
@@ -75,5 +75,5 @@ try{
   }
  }
  assert.deepEqual(errors,[]);writeFileSync('shots/terrain-contact/proof.json',JSON.stringify({proof,errors},null,2));
- console.log('PASS actual GPU depth / physical triangle agreement across eight entrances and both shoulders; no shader errors');
+ console.log('PASS actual GPU depth / physical triangle agreement across all ten entrances and both shoulders; no shader errors');
 }finally{await browser.close()}

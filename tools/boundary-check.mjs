@@ -12,7 +12,7 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
  page.on('pageerror',e=>{errors.push(e.message);console.log('ERROR',e.message)});
  page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.log('ERROR',m.text())}});
- const links=[['alpine','village','golden'],['village','autumn','bridge'],['autumn','aurora','pass'],['aurora','alpine','snowmelt']];
+ const links=[['alpine','village','golden'],['village','autumn','bridge'],['autumn','aurora','pass'],['aurora','alpine','snowmelt'],['village','arches','drywash'],['arches','village','drywash']];
  for(const [from,to,id] of links){
   await page.goto(`http://127.0.0.1:5405/?scene=${from}&trail=${id}&nopad`);
   await page.waitForFunction(()=>window.lab?.ready,null,{timeout:120000});

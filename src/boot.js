@@ -2,7 +2,7 @@ import {SCENE,SCENE_IDS,setScene,showScene} from './scenes.js';
 import {Cache} from 'three';
 Cache.enabled=true;
 
-const loaders={aurora:()=>import('./night/main.js'),autumn:()=>import('./main.js'),alpine:()=>import('./alpine/main.js'),village:()=>import('./village/main.js')};
+const loaders={aurora:()=>import('./night/main.js'),autumn:()=>import('./main.js'),alpine:()=>import('./alpine/main.js'),village:()=>import('./village/main.js'),arches:()=>import('./arches/main.js')};
 let runtime,busy=false;
 function updateNavigation(){
  document.documentElement.dataset.scene=SCENE;

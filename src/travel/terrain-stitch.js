@@ -3,6 +3,7 @@ import * as THREE from 'three';
 // Cut a geographic footprint out of the ORIGINAL world, at its actual fragment
 // position. No screen-door fade and no second visible ground above the collider.
 export function stitchRegion(roots,boundaries,camera){
+ const count=boundaries.length;
  const frames=boundaries.map(b=>new THREE.Vector4(b.origin.x,b.origin.z,b.axis.x,b.axis.z));
  const ends=boundaries.map(b=>new THREE.Vector2(b.sEnd,b.sign));
  const inv={value:new THREE.Matrix4()},viewport={value:new THREE.Vector2(1,1)},atmosphere={value:0},pass={value:0};
@@ -16,13 +17,13 @@ export function stitchRegion(roots,boundaries,camera){
    const skyMarks=sky&&m.transparent;
    m.onBeforeCompile=(shader,renderer)=>{
     previous(shader,renderer);
-    Object.assign(shader.uniforms,{uStitchInv:inv,uStitchViewport:viewport,uStitchFrames:{value:frames},uStitchEnds:{value:ends},uStitchAtmosphere:atmosphere,uStitchPass:pass});
-    const header=`uniform mat4 uStitchInv;uniform vec2 uStitchViewport;uniform vec4 uStitchFrames[2];uniform vec2 uStitchEnds[2];uniform float uStitchAtmosphere;uniform float uStitchPass;\n`;
+    Object.assign(shader.uniforms,{uStitchInv:inv,uStitchViewport:viewport,uStitchFrames:{value:frames},uStitchEnds:{value:ends},uStitchWidths:{value:boundaries.map(b=>b.halfWidth)},uStitchAtmosphere:atmosphere,uStitchPass:pass});
+    const header=`uniform mat4 uStitchInv;uniform vec2 uStitchViewport;uniform vec4 uStitchFrames[${count}];uniform vec2 uStitchEnds[${count}];uniform float uStitchWidths[${count}];uniform float uStitchAtmosphere;uniform float uStitchPass;\n`;
     shader.fragmentShader=header+shader.fragmentShader;
     if(!sky){
      shader.fragmentShader=shader.fragmentShader.replace(/void\s+main\s*\(\s*\)\s*\{/,
       `void main(){vec4 stitchH=uStitchInv*vec4(gl_FragCoord.xy/uStitchViewport*2.-1.,gl_FragCoord.z*2.-1.,1.);vec2 stitchP=stitchH.xz/stitchH.w;
-      for(int i=0;i<2;i++){vec4 f=uStitchFrames[i];vec2 q=stitchP-f.xy;float s=dot(q,f.zw),u=dot(q,vec2(f.w,-f.z));if(abs(u)<110.&&abs(s)<168.&&uStitchEnds[i].y*(s-uStitchEnds[i].x)>-40.)discard;}`);
+      for(int i=0;i<${count};i++){vec4 f=uStitchFrames[i];vec2 q=stitchP-f.xy;float s=dot(q,f.zw),u=dot(q,vec2(f.w,-f.z));if(abs(u)<uStitchWidths[i]&&abs(s)<168.&&uStitchEnds[i].y*(s-uStitchEnds[i].x)>-40.)discard;}`);
     }else{
      const output=shader.fragmentShader.match(/\bout\s+(?:highp\s+)?vec4\s+(\w+)\s*;/)?.[1];
      if(output){
@@ -32,7 +33,7 @@ export function stitchRegion(roots,boundaries,camera){
      }
     }
    };
-   m.customProgramCacheKey=()=>key()+`-geographic-stitch-v2-${sky}`;m.needsUpdate=true;
+   m.customProgramCacheKey=()=>key()+`-geographic-stitch-v3-${count}-${sky}`;m.needsUpdate=true;
   }
   for(const child of o.children)visit(child,sky);
  }

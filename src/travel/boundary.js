@@ -10,6 +10,7 @@ export const BOUNDARIES=[
  {id:'golden',a:'alpine',b:'village',name:'金草缓坡',seed:373262},
  {id:'bridge',a:'village',b:'autumn',name:'林缘石桥',seed:373263},
  {id:'pass',a:'autumn',b:'aurora',name:'落叶松山口',seed:373264},
+ {id:'drywash',a:'village',b:'arches',name:'红砂风谷',seed:316937,width:42},
 ];
 export const smooth=(a,b,x)=>{const t=THREE.MathUtils.clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 const UP=new THREE.Vector3(0,1,0),I=new THREE.Matrix4();
@@ -26,6 +27,7 @@ const palettes={
  roof:{l:[.82,.47,.25],m:[.57,.29,.18],s:[.31,.28,.23]},
  water:{l:[.67,.83,.82],m:[.31,.58,.63],s:[.15,.37,.45]},
  foam:{l:[.93,.94,.83],m:[.76,.86,.82],s:[.45,.64,.67]},
+ sand:{l:[.98,.75,.40],m:[.80,.51,.28],s:[.44,.31,.27]},
 };
 
 export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R}){
@@ -43,7 +45,7 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
  cs.uBounce.value.setRGB(.07,.065,.025);cs.uGlazeMul.value.setRGB(.44,.44,.51);
  cs.uHazeDensity={value:.0025};cs.uGroundMist={value:0};
  cs.uImpasto={value:.8};
- const kit=createKit(cs,{palettes,seed:spec.seed,haze:true,light:`vec3 kitPaint(vec3 P,vec3 Nn,int k,float tone,float r){return paint3(PAL_L[k],PAL_M[k],PAL_S[k],clamp(dot(Nn,uSunDir)*.5+.5,0.,1.),r)*tone;}`});
+ const kit=createKit(cs,{palettes:spec.id==='drywash'?{...palettes,stone:{l:[.90,.60,.35],m:[.67,.37,.23],s:[.35,.26,.26]}}:palettes,seed:spec.seed,haze:true,light:`vec3 kitPaint(vec3 P,vec3 Nn,int k,float tone,float r){return paint3(PAL_L[k],PAL_M[k],PAL_S[k],clamp(dot(Nn,uSunDir)*.5+.5,0.,1.),r)*tone;}`});
  const path=s=>7*Math.sin(Math.PI*(s+120)/240)**2*Math.sin(2*Math.PI*(s+120)/240);
  const project=(x,z)=>{const dx=x-origin.x,dz=z-origin.z;return {s:dx*axis.x+dz*axis.z,u:dx*side.x+dz*side.z}};
  const point=(u,s,y=0)=>new THREE.Vector3(origin.x+axis.x*s+side.x*u,end.y+y,origin.z+axis.z*s+side.z*u);
@@ -58,19 +60,19 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
   if(spec.id==='bridge'){const channel=1-smooth(2.5,7,Math.abs(s+19));y=THREE.MathUtils.lerp(y,-1.6-.003*u,channel);}
   return y;
  }
- const cols=110,rows=168,cell=2,heights=new Float32Array((cols+1)*(rows+1));let sampled=false;
- const owns=(u,s)=>Math.abs(u)<110&&Math.abs(s)<168&&distance(s)>-40;
+ const halfWidth=spec.width??110,cols=halfWidth,rows=168,cell=2,heights=new Float32Array((cols+1)*(rows+1));let sampled=false;
+ const owns=(u,s)=>Math.abs(u)<halfWidth&&Math.abs(s)<168&&distance(s)>-40;
  function rawHeight(u,s){
   const p=point(u,s);
   const natural=heightAt(p.x,p.z)-end.y;
   // All FOUR edges meet the host terrain, with zero derivative in the blend
   // weight at the edge. A side step must not switch between unrelated heights.
-  const weight=smooth(0,64,distance(s))*(1-smooth(60,108,Math.abs(u)))*(1-smooth(136,168,Math.abs(s)));
+  const weight=smooth(0,64,distance(s))*(1-smooth(halfWidth*.545,halfWidth-2,Math.abs(u)))*(1-smooth(136,168,Math.abs(s)));
   return THREE.MathUtils.lerp(natural,core(u,s),weight)+.015;
  }
  function h(u,s){
   if(!sampled)return rawHeight(u,s);
-  const x=THREE.MathUtils.clamp((u+110)/cell,0,cols-.000001),z=THREE.MathUtils.clamp((s+168)/cell,0,rows-.000001),i=Math.floor(x),j=Math.floor(z),tx=x-i,tz=z-j,k=i+j*(cols+1);
+  const x=THREE.MathUtils.clamp((u+halfWidth)/cell,0,cols-.000001),z=THREE.MathUtils.clamp((s+168)/cell,0,rows-.000001),i=Math.floor(x),j=Math.floor(z),tx=x-i,tz=z-j,k=i+j*(cols+1);
   const a=heights[k],b=heights[k+1],c=heights[k+cols+1],d=heights[k+cols+2];
   // Barycentric interpolation of the ACTUAL visible/collision triangles.
   return tx+tz<=1?a+(b-a)*tx+(c-a)*tz:d+(c-d)*(1-tx)+(b-d)*(1-tz);
@@ -78,6 +80,7 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
  const deck=s=>2.5*Math.sin((s+120)/240*Math.PI)**2+.035;
  function palette(u,s){
   const t=(s+120)/240,patch=Math.sin(s*.12+u*.22)*.13+Math.sin(u*.43-s*.05)*.09;
+  if(spec.id==='drywash')return t+patch<.35?'gold':'sand';
   if(spec.id==='snowmelt')return t+patch<.38?'snow':t+patch<.61?'gold':'grass';
   if(spec.id==='golden')return t+patch<.49?'grass':'gold';
   if(spec.id==='bridge')return t+patch<.43?'gold':t+patch<.68?'grass':'leaf';
@@ -94,12 +97,12 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
  }
  // A 220 m wide valley, including sculpted shoulders, not a rectangular road card.
  const pos=[],idx=[],geo=new THREE.BufferGeometry();
- for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){const u=-110+i*cell,s=-168+j*cell,p=point(u,s,rawHeight(u,s));pos.push(...p.toArray());heights[i+j*(cols+1)]=Math.fround(p.y)-end.y;}
+ for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){const u=-halfWidth+i*cell,s=-168+j*cell,p=point(u,s,rawHeight(u,s));pos.push(...p.toArray());heights[i+j*(cols+1)]=Math.fround(p.y)-end.y;}
  sampled=true;
  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
-  const u=-110+(i+.5)*cell,s=-168+(j+.5)*cell;if(!owns(u,s))continue;
+  const u=-halfWidth+(i+.5)*cell,s=-168+(j+.5)*cell;if(!owns(u,s))continue;
   const a=j*(cols+1)+i,b=a+1,c=a+cols+1,d=c+1;idx.push(a,c,b,b,c,d);
-  const edge=1-smooth(60,108,Math.abs(u)),sourcePal={aurora:'snow',alpine:'grass',village:'gold',autumn:'leaf'}[current];
+  const edge=1-smooth(halfWidth*.545,halfWidth-2,Math.abs(u)),sourcePal={aurora:'snow',alpine:'grass',village:'gold',autumn:'leaf',arches:'sand'}[current];
   const pal=edge<.5?sourcePal:palette(u,s);kit.reseed(spec.seed+Math.round((s+400)*cols+(u+400)));
   const patch=new THREE.BufferGeometry();patch.setAttribute('position',new THREE.Float32BufferAttribute([...pos.slice(a*3,a*3+3),...pos.slice(c*3,c*3+3),...pos.slice(b*3,b*3+3),...pos.slice(b*3,b*3+3),...pos.slice(c*3,c*3+3),...pos.slice(d*3,d*3+3)],3));patch.computeVertexNormals();
   kit.add(patch,I,pal,{stroke:[1,2.7],density:.25,free:true,grain:axis});patch.dispose();
@@ -152,17 +155,20 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
  // Clustered placement leaves the route and sightline open; trunks always meet terrain.
  for(let i=0;i<142;i++){
   const s=-158+rand()*316,u=(rand()<.5?-1:1)*(8+rand()**1.5*56),t=(s+120)/240;
+  if(Math.abs(u)>halfWidth-5||spec.id==='drywash'&&(t>.48||rand()>.16))continue;
   let type='pine';
+  if(spec.id==='drywash')type=t<.25?'cypress':'olive';
   if(spec.id==='golden')type=t<.38?'pine':rand()<.25?'cypress':'olive';
   if(spec.id==='bridge')type=t<.25?'olive':'leaf';
   if(spec.id==='pass')type=t<.3?'leaf':t<.68?'larch':'snow';
   if(spec.id==='snowmelt')type=t<.5?'snow':'pine';
   tree(u,s,6+rand()*9,type);
  }
- for(let i=0;i<90;i++){const s=-148+rand()*296,u=(rand()<.5?-1:1)*(5+rand()*55);rock(u,s,.35+rand()*1.15);}
+ for(let i=0;i<90;i++){const s=-148+rand()*296,u=(rand()<.5?-1:1)*(5+rand()*55);if(Math.abs(u)<halfWidth-3)rock(u,s,.35+rand()*1.15);}
  // Large individual three-dimensional grass/wheat strokes, bent by wind AND walker.
  for(let i=0;i<5300;i++){
-  const s=-158+rand()*316,u=(rand()-.5)*126;if(Math.abs(u-path(s))<2.3)continue;
+  const s=-158+rand()*316,u=(rand()-.5)*126;if(Math.abs(u-path(s))<2.3||Math.abs(u)>halfWidth-2)continue;
+  if(spec.id==='drywash'&&rand()>.22)continue;
   const p=point(u,s,h(u,s)),pal=palette(u,s);if(pal==='snow'&&rand()<.86)continue;
   const tall=pal==='gold'?.42+rand()*.5:.13+rand()*.42;
   kit.stroke(p,UP,new THREE.Vector3(.2,1,.05).normalize().applyAxisAngle(UP,yaw),.10+rand()*.15,tall,pal,.9+rand()*.25,.025);
@@ -222,12 +228,12 @@ export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R})
  grass.vertexShader=grass.vertexShader.replace('void makeDab(inout Dab d)', 'uniform vec3 uBoundaryWalker;uniform vec3 uBoundaryOrigin;uniform vec3 uBoundaryAxis;\nvoid makeDab(inout Dab d)');
  grass.vertexShader=grass.vertexShader.replace('d.height = 0.004 + aMore.y + 0.01 * r.z;',`d.height = 0.004 + aMore.y + 0.01 * r.z;
  if(aMore.y<0.){d.lie=0.;d.height=0.;}
- if(aData.z<1.05&&aData.y<.29&&(k==0||k==1||k==2)){float w=1.-smoothstep(.35,1.45,length(aPos.xz-uBoundaryWalker.xz));vec3 side=vec3(uBoundaryAxis.z,0.,-uBoundaryAxis.x);vec3 q=aPos-uBoundaryOrigin;float u=dot(q,side),s=dot(q,uBoundaryAxis);d.lie=0.;d.base=1.;d.dir=normalize(aDir+side*(sin(uTime*1.7+u*.25)*.18+w*.8)+uBoundaryAxis*cos(uTime+s*.25)*.1);d.size.y*=1.-w*.48;}`);
+ if(aData.z<1.05&&aData.y<.29&&(k==0||k==1||k==2||k==12)){float w=1.-smoothstep(.35,1.45,length(aPos.xz-uBoundaryWalker.xz));vec3 side=vec3(uBoundaryAxis.z,0.,-uBoundaryAxis.x);vec3 q=aPos-uBoundaryOrigin;float u=dot(q,side),s=dot(q,uBoundaryAxis);d.lie=0.;d.base=1.;d.dir=normalize(aDir+side*(sin(uTime*1.7+u*.25)*.18+w*.8)+uBoundaryAxis*cos(uTime+s*.25)*.1);d.size.y*=1.-w*.48;}`);
  built.under.material.uniforms.uBoundaryOrigin={value:origin};built.under.material.uniforms.uBoundaryAxis={value:axis};
  built.under.material.fragmentShader='uniform vec3 uBoundaryOrigin;uniform vec3 uBoundaryAxis;\n'+built.under.material.fragmentShader;
  built.under.material.fragmentShader=built.under.material.fragmentShader.replace('(vWorld.xz + vWorld.y) * 0.9','(vec2(dot(vWorld-uBoundaryOrigin,vec3(uBoundaryAxis.z,0.,-uBoundaryAxis.x)),dot(vWorld-uBoundaryOrigin,uBoundaryAxis)) + vWorld.y-uBoundaryOrigin.y) * 0.9');
  sky.visible=false;
- return {spec,group,sky,colliders,groundCollider,terrainMesh,axis,side,origin,yaw,sign,sEnd,end,path,project,point,height:h,rawHeight,shared:cs,count:built.count,
+ return {spec,group,sky,colliders,groundCollider,terrainMesh,halfWidth,sharedWidth:Math.min(55,halfWidth*.5),axis,side,origin,yaw,sign,sEnd,end,path,project,point,height:h,rawHeight,shared:cs,count:built.count,
   sampleHeight(x,z){const {s,u}=project(x,z);return end.y+(spec.id==='bridge'&&Math.abs(u-path(s))<1.9&&s>-28&&s<-10?Math.max(h(u,s),deck(s)):h(u,s))},
   contains(x,z){const {s,u}=project(x,z);return owns(u,s)},
   progress(x,z){return distance(project(x,z).s)},

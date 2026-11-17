@@ -2,7 +2,7 @@
 // keyboard listeners, WebGL resources or Rapier worlds.
 export function createWorldScope({background=false}={}){
  const controller=new AbortController(),timers=new Set();
- const selector='#world-atlas,#world-portal-action,#world-portal-label,#world-travel-status,#world-walk-status,#world-road-signs,#pasture-action,#pasture-toast,#pasture-markers,#pasture-camera,#village-action,#village-toast,#village-camera';
+ const selector='#world-atlas,#world-portal-action,#world-portal-label,#world-travel-status,#world-walk-status,#world-road-signs,#pasture-action,#pasture-toast,#pasture-markers,#pasture-camera,#village-action,#village-toast,#village-camera,#arches-action,#arches-toast,#arches-camera';
  const before=new Set(document.querySelectorAll(selector));let owned=[];
  const observer=background?new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1&&node.matches(selector))node.style.visibility='hidden';}):null;
  observer?.observe(document.body,{childList:true});
