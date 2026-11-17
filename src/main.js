@@ -88,6 +88,7 @@ const forest = createForest(shared);
 lap('forest');
 const floor = createFloor(shared);
 const sky = createSky(shared);
+sky.group.userData.boundarySky=true;
 const leaves = createLeaves(shared, 2400);
 const shade = createShade(renderer, shared, forest.shade);
 lap('shade');
@@ -192,6 +193,7 @@ function tick(dt) {
   floor.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
   travel.update(time,dt);
+  travel.walking.prepareRender(renderer,camera);
   frame.render(scene, camera);
 }
 

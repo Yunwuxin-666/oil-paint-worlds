@@ -117,6 +117,7 @@ const cabin = createCabin(shared);
 land.shade.add(cabin.caster);
 lap('snow');
 const sky = createSky(shared);
+sky.group.userData.boundarySky=true;
 const far = createFar(shared);
 const tracks = createTracks(shared);
 const drift = createDrift(shared);
@@ -302,6 +303,7 @@ function tick(dt) {
   snow.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
   travel.update(time,dt);
+  travel.walking.prepareRender(renderer,camera);
   frame.render(scene, camera);
 }
 

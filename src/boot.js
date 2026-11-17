@@ -32,6 +32,7 @@ async function switchScene(id,options={}){
    setScene(id);const url=new URL(location.href);url.searchParams.set('scene',id);url.searchParams.delete('arrival');history.replaceState({scene:id},'',url);updateNavigation();ensureLoading();
    runtime=await module.startWorld({background:true});
    const L=runtime.lab,b=L.travel.walking.routes.find(r=>r.to===walk.from).boundary,p=b.point(walk.u,walk.s,walk.y);
+   p.y=L.heightAt(p.x,p.z);
    L.teleport(p.x,p.z,p.x+Math.sin(b.yaw+heading),p.z+Math.cos(b.yaw+heading));
    const player=L.player,half=player.halfHeight();
    player.body.setTranslation({x:p.x,y:p.y+player.t.radius+half+.02,z:p.z},true);L.physics.propagateModifiedBodyPositionsToColliders();player.feet.copy(p);player.prevFeet.copy(p);player.visualY=p.y;

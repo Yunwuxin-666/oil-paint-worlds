@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {createKit} from '../night/kit.js';
 import {SCENE} from '../scenes.js';
 import {regionById} from './regions.js';
-import {createBoundary,fadeRegion,smooth} from './boundary.js';
+import {createBoundary,smooth} from './boundary.js';
+import {stitchRegion} from './terrain-stitch.js';
 
 export const WALK_LINKS={
  aurora:[{to:'alpine',z:-50,endOffset:14},{to:'autumn',z:320}],
@@ -50,16 +51,16 @@ function plan({player,heightAt,pathAt,startZ,endZ,endOffset=0}){
 export function createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,onCross,capture,physics,RAPIER}){
  // Explicitly supplied by the caller: cloak/dabs have no stable object names.
  const outgoing=scene.children.filter(o=>!o.userData.boundaryKeep);
- const regionVisibility=fadeRegion(outgoing);
- physics.RAPIER_BOUNDARY=RAPIER;
+ const regionVisibility={value:1};
  const group=new THREE.Group();group.name='regional-walking-trails';scene.add(group);
  const current=SCENE,anchorZ=spawn.z-20;
  const routes=WALK_LINKS[current].map(link=>({...link,points:plan({player,heightAt,pathAt,startZ:anchorZ,endZ:link.z,endOffset:link.endOffset})}));
  for(const route of routes){
   route.regionPoints=route.points.slice();
-  route.boundary=createBoundary({route,current,shared,physics,heightAt});
+  route.boundary=createBoundary({route,current,shared,physics,heightAt,RAPIER});
   route.points.push(...route.boundary.pathPoints());group.add(route.boundary.group);
  }
+ const stitch=stitchRegion(outgoing,routes.map(r=>r.boundary),follow.camera);
  for(const route of routes){route.remaining=new Array(route.points.length).fill(0);for(let i=route.points.length-2;i>=0;i--){const a=route.points[i],c=route.points[i+1];route.remaining[i]=route.remaining[i+1]+Math.hypot(a.x-c.x,a.z-c.z);}}
  const night=current==='aurora';
  const b=createKit(shared,{seed:583232,haze:true,palettes:{
@@ -106,7 +107,11 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
    if(frame){frame.uniforms.uCanvas.value=THREE.MathUtils.lerp(baseFinish.canvas,1.35,blend);frame.uniforms.uShafts.value=THREE.MathUtils.lerp(baseFinish.shafts,0,blend);}
   }else if(frame)baseFinish={canvas:frame.uniforms.uCanvas.value,shafts:frame.uniforms.uShafts.value};
   previousBlend=blend;
-  player.collisionFilter=active&&active.progress(p.x,p.z)>5?c=>active.colliders.has(c.handle):undefined;
+  player.collisionFilter=active?c=>{
+   if(active.colliders.has(c.handle))return true;
+   if(c.shape instanceof RAPIER.Heightfield)return false;
+   const at=c.translation();return !active.contains(at.x,at.z);
+  }:undefined;
   for(const [k,v] of Object.entries(baseLight)){
    const target=active?.shared[k]?.value??v;
    if(typeof v==='number')shared[k].value=THREE.MathUtils.lerp(v,target,blend);
@@ -121,7 +126,7 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
   player.body.setTranslation({x:p.x,y:p.y+player.t.radius+half+.04,z:p.z},true);player.world.propagateModifiedBodyPositionsToColliders();player.feet.copy(p);player.prevFeet.copy(p);player.visualY=p.y;player.vel.set(0,0,0);player.speed=0;player.grounded=true;
   status.textContent='已回到最近的安全路段';
  }
- return {routes,group,signs,recover,boundaryAt,updateBoundary,regionVisibility,setFrame(f){frame=f;baseFinish={canvas:f.uniforms.uCanvas.value,shafts:f.uniforms.uShafts.value}},get active(){return active},
+ return {routes,group,signs,recover,boundaryAt,updateBoundary,regionVisibility,stitch,setFrame(f){frame=f;baseFinish={canvas:f.uniforms.uCanvas.value,shafts:f.uniforms.uShafts.value}},prepareRender(renderer,camera){const size=renderer.getDrawingBufferSize(new THREE.Vector2());stitch.setViewport(size.x,size.y);stitch.update(1-regionVisibility.value,active?.spec.id==='pass');},get active(){return active},
  heightAt(x,z){const b=boundaryAt(x,z);return b?b.sampleHeight(x,z):heightAt(x,z)},
  get loading(){return loading},update(time,dt){
   updateBoundary();
@@ -135,7 +140,8 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
   const forward=temp.copy(end).sub(before).setY(0).normalize().dot(player.vel);
   status.textContent=active?`${active.spec.name} · ${regionById(route.to).name}方向`:d<5?`山路通往${regionById(route.to).name} · 约 ${Math.round(route.remaining[i])} 米`:'';
   if(d<7&&i>route.points.length*.68)window.worldTravel?.preload(route.to);
-  if(clock>2.5&&active===route.boundary&&active.progress(p.x,p.z)>120&&forward>.15&&player.grounded){
+  if(active&&Math.abs(active.project(p.x,p.z).u)>55&&active.progress(p.x,p.z)>105)status.textContent=`沿谷中小路前往${regionById(route.to).name}`;
+  if(clock>2.5&&active===route.boundary&&Math.abs(active.project(p.x,p.z).u)<55&&active.progress(p.x,p.z)>120&&forward>.15&&player.grounded){
    loading=true;status.textContent=`${active.spec.name} · 前往${regionById(route.to).name}`;
    const local=active.project(p.x,p.z);onCross(route.to,{from:current,boundary:active.spec.id,s:local.s,u:local.u,y:p.y-active.end.y,yaw:active.yaw});
   }

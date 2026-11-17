@@ -240,6 +240,7 @@ function tick(dt) {
   floor.follow(camera.position.x, camera.position.z);
   shade.update(scene, root);
   travel.update(time,dt);
+  travel.walking.prepareRender(renderer,camera);
   frame.render(scene, camera);
 }
 

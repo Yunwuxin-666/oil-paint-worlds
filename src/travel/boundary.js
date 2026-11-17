@@ -28,7 +28,7 @@ const palettes={
  foam:{l:[.93,.94,.83],m:[.76,.86,.82],s:[.45,.64,.67]},
 };
 
-export function createBoundary({route,current,shared,physics,heightAt}){
+export function createBoundary({route,current,shared,physics,heightAt,RAPIER:R}){
  const spec=BOUNDARIES.find(b=>[b.a,b.b].includes(current)&&[b.a,b.b].includes(route.to));
  const sign=current===spec.a?1:-1,sEnd=-120*sign;
  const end=route.points.at(-1).clone(),before=route.points.at(-4);
@@ -58,10 +58,22 @@ export function createBoundary({route,current,shared,physics,heightAt}){
   if(spec.id==='bridge'){const channel=1-smooth(2.5,7,Math.abs(s+19));y=THREE.MathUtils.lerp(y,-1.6-.003*u,channel);}
   return y;
  }
- function h(u,s){
-  const p=point(u,s),blend=1-smooth(0,48,distance(s));
+ const cols=110,rows=168,cell=2,heights=new Float32Array((cols+1)*(rows+1));let sampled=false;
+ const owns=(u,s)=>Math.abs(u)<110&&Math.abs(s)<168&&distance(s)>-40;
+ function rawHeight(u,s){
+  const p=point(u,s);
   const natural=heightAt(p.x,p.z)-end.y;
-  return core(u,s)*(1-blend)+natural*blend+.035;
+  // All FOUR edges meet the host terrain, with zero derivative in the blend
+  // weight at the edge. A side step must not switch between unrelated heights.
+  const weight=smooth(0,64,distance(s))*(1-smooth(60,108,Math.abs(u)))*(1-smooth(136,168,Math.abs(s)));
+  return THREE.MathUtils.lerp(natural,core(u,s),weight)+.015;
+ }
+ function h(u,s){
+  if(!sampled)return rawHeight(u,s);
+  const x=THREE.MathUtils.clamp((u+110)/cell,0,cols-.000001),z=THREE.MathUtils.clamp((s+168)/cell,0,rows-.000001),i=Math.floor(x),j=Math.floor(z),tx=x-i,tz=z-j,k=i+j*(cols+1);
+  const a=heights[k],b=heights[k+1],c=heights[k+cols+1],d=heights[k+cols+2];
+  // Barycentric interpolation of the ACTUAL visible/collision triangles.
+  return tx+tz<=1?a+(b-a)*tx+(c-a)*tz:d+(c-d)*(1-tx)+(b-d)*(1-tz);
  }
  const deck=s=>2.5*Math.sin((s+120)/240*Math.PI)**2+.035;
  function palette(u,s){
@@ -77,23 +89,28 @@ export function createBoundary({route,current,shared,physics,heightAt}){
   for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=j*(cols+1)+i,b=a+1,c=a+cols+1,d=c+1;idx.push(a,c,b,b,c,d);}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
   if(pal)kit.add(geo,I,pal,{stroke:[.8,2.3],density:.30,free:true,...opts});
-  if(solid){const c=physics.createCollider(physics.RAPIER_BOUNDARY.ColliderDesc.trimesh(new Float32Array(pos),new Uint32Array(idx)));colliders.add(c.handle);}
+  if(solid){const c=physics.createCollider(R.ColliderDesc.trimesh(new Float32Array(pos),new Uint32Array(idx)));colliders.add(c.handle);}
   return geo;
  }
  // A 220 m wide valley, including sculpted shoulders, not a rectangular road card.
- const cols=55,rows=84,pos=[],idx=[],geo=new THREE.BufferGeometry();
- for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){const u=-110+i*4,s=-168+j*4,p=point(u,s,h(u,s));pos.push(...p.toArray());}
+ const pos=[],idx=[],geo=new THREE.BufferGeometry();
+ for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){const u=-110+i*cell,s=-168+j*cell,p=point(u,s,rawHeight(u,s));pos.push(...p.toArray());heights[i+j*(cols+1)]=Math.fround(p.y)-end.y;}
+ sampled=true;
  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+  const u=-110+(i+.5)*cell,s=-168+(j+.5)*cell;if(!owns(u,s))continue;
   const a=j*(cols+1)+i,b=a+1,c=a+cols+1,d=c+1;idx.push(a,c,b,b,c,d);
-  const u=-108+i*4,s=-166+j*4,pal=palette(u,s);kit.reseed(spec.seed+j*cols+i);
+  const edge=1-smooth(60,108,Math.abs(u)),sourcePal={aurora:'snow',alpine:'grass',village:'gold',autumn:'leaf'}[current];
+  const pal=edge<.5?sourcePal:palette(u,s);kit.reseed(spec.seed+Math.round((s+400)*cols+(u+400)));
   const patch=new THREE.BufferGeometry();patch.setAttribute('position',new THREE.Float32BufferAttribute([...pos.slice(a*3,a*3+3),...pos.slice(c*3,c*3+3),...pos.slice(b*3,b*3+3),...pos.slice(b*3,b*3+3),...pos.slice(c*3,c*3+3),...pos.slice(d*3,d*3+3)],3));patch.computeVertexNormals();
   kit.add(patch,I,pal,{stroke:[1,2.7],density:.25,free:true,grain:axis});patch.dispose();
  }
  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
- const R=physics.RAPIER_BOUNDARY;
- const groundCollider=physics.createCollider(R.ColliderDesc.trimesh(new Float32Array(pos),new Uint32Array(idx)));colliders.add(groundCollider.handle);geo.dispose();
+ const groundCollider=physics.createCollider(R.ColliderDesc.trimesh(new Float32Array(pos),new Uint32Array(idx)));colliders.add(groundCollider.handle);
+ const terrainMesh=new THREE.Mesh(geo,new THREE.MeshBasicMaterial());
+ terrainMesh.name='boundary-collision-surface';terrainMesh.visible=false;group.add(terrainMesh);
  // The visible road is a thin finish on this SAME collider, with a soft broken shoulder.
  for(let s=-164;s<164;s+=2){
+  if(!owns(path(s),s+1))continue;
   kit.reseed(spec.seed+30000+s*4);
   const a=point(path(s)-1.65,s,h(path(s)-1.65,s)+.025),b=point(path(s)+1.65,s,h(path(s)+1.65,s)+.025),c=point(path(s+2)-1.65,s+2,h(path(s+2)-1.65,s+2)+.025),d=point(path(s+2)+1.65,s+2,h(path(s+2)+1.65,s+2)+.025);
   kit.tri(a.toArray(),c.toArray(),b.toArray(),'earth',{stroke:[.48,1.45],density:.6,free:true,grain:axis.toArray()});kit.tri(b.toArray(),c.toArray(),d.toArray(),'earth',{stroke:[.48,1.45],density:.6,free:true,grain:axis.toArray()});
@@ -149,18 +166,6 @@ export function createBoundary({route,current,shared,physics,heightAt}){
   const p=point(u,s,h(u,s)),pal=palette(u,s);if(pal==='snow'&&rand()<.86)continue;
   const tall=pal==='gold'?.42+rand()*.5:.13+rand()*.42;
   kit.stroke(p,UP,new THREE.Vector3(.2,1,.05).normalize().applyAxisAngle(UP,yaw),.10+rand()*.15,tall,pal,.9+rand()*.25,.025);
- }
- // Shared far shoulders close the horizon beyond the traversable valley. These
- // are volume meshes, not a mountain picture; no open rectangular terrain edge.
- for(const sideSign of [-1,1])for(let j=0;j<13;j++){
-  const s=-350+j*58,u=sideSign*(150+20*Math.sin(j*1.7)),p=point(u,s,18+8*Math.sin(j));
-  kit.reseed(spec.seed+71000+j+sideSign*20);
-  const g=new THREE.DodecahedronGeometry(1,1),m=new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromAxisAngle(UP,yaw+j*.7),new THREE.Vector3(95,45+15*Math.sin(j)**2,70));
-  kit.add(g,m,'stone',{stroke:[3,7],density:.14,free:true});g.dispose();
- }
- for(const far of [-1,1]){
-  const p=point(0,far*270,0),g=new THREE.SphereGeometry(1,20,8,0,Math.PI*2,0,Math.PI/2);
-  kit.add(g,new THREE.Matrix4().compose(p,new THREE.Quaternion(),new THREE.Vector3(220,35,130)),spec.id==='snowmelt'?'snow':'grass',{stroke:[3,7],density:.18,free:true});g.dispose();
  }
  if(spec.id==='golden'){
   for(let s=-32;s<42;s+=3)solidBox(path(s)+5.7,s,1,.72,2.6,'stone');
@@ -222,22 +227,11 @@ export function createBoundary({route,current,shared,physics,heightAt}){
  built.under.material.fragmentShader='uniform vec3 uBoundaryOrigin;uniform vec3 uBoundaryAxis;\n'+built.under.material.fragmentShader;
  built.under.material.fragmentShader=built.under.material.fragmentShader.replace('(vWorld.xz + vWorld.y) * 0.9','(vec2(dot(vWorld-uBoundaryOrigin,vec3(uBoundaryAxis.z,0.,-uBoundaryAxis.x)),dot(vWorld-uBoundaryOrigin,uBoundaryAxis)) + vWorld.y-uBoundaryOrigin.y) * 0.9');
  sky.visible=false;
- return {spec,group,sky,colliders,axis,side,origin,yaw,sign,sEnd,end,path,project,point,height:h,shared:cs,count:built.count,
+ return {spec,group,sky,colliders,groundCollider,terrainMesh,axis,side,origin,yaw,sign,sEnd,end,path,project,point,height:h,rawHeight,shared:cs,count:built.count,
   sampleHeight(x,z){const {s,u}=project(x,z);return end.y+(spec.id==='bridge'&&Math.abs(u-path(s))<1.9&&s>-28&&s<-10?Math.max(h(u,s),deck(s)):h(u,s))},
-  contains(x,z){const {s,u}=project(x,z);return Math.abs(s)<163&&Math.abs(u)<104&&distance(s)>-3},
+  contains(x,z){const {s,u}=project(x,z);return owns(u,s)},
   progress(x,z){return distance(project(x,z).s)},
   update(feet){grass.uniforms.uBoundaryWalker.value.copy(feet)},
   pathPoints(){const out=[];for(let d=2;d<=136;d+=2){const s=sEnd+sign*d,u=path(s);out.push(point(u,s,h(u,s)))}return out;},
  };
-}
-
-// Dither only the outgoing region. The shared valley remains fully opaque.
-export function fadeRegion(objects){
- const visibility={value:1},seen=new Set();
- for(const root of objects)root.traverse(o=>{for(const m of [o.material].flat().filter(Boolean)){
-  if(seen.has(m))continue;seen.add(m);const previous=m.onBeforeCompile.bind(m),key=m.customProgramCacheKey.bind(m);
-  m.onBeforeCompile=(shader,renderer)=>{previous(shader,renderer);shader.uniforms.uRegionVisibility=visibility;shader.fragmentShader='uniform float uRegionVisibility;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace(/void\s+main\s*\(\s*\)\s*\{/,`void main(){if(uRegionVisibility<.001)discard;if(uRegionVisibility<.999 && fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453)>uRegionVisibility)discard;`)};
-  m.customProgramCacheKey=()=>key()+'-boundary-fade-v1';m.needsUpdate=true;
- }});
- return visibility;
 }
