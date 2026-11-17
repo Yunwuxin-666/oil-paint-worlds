@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createKit} from '../night/kit.js';
 import {SCENE} from '../scenes.js';
 import {regionById} from './regions.js';
+import {createBoundary,fadeRegion,smooth} from './boundary.js';
 
 export const WALK_LINKS={
  aurora:[{to:'alpine',z:-50,endOffset:14},{to:'autumn',z:320}],
@@ -46,10 +47,19 @@ function plan({player,heightAt,pathAt,startZ,endZ,endOffset=0}){
  return points;
 }
 
-export function createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,onCross,capture}){
+export function createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,onCross,capture,physics,RAPIER}){
+ // Explicitly supplied by the caller: cloak/dabs have no stable object names.
+ const outgoing=scene.children.filter(o=>!o.userData.boundaryKeep);
+ const regionVisibility=fadeRegion(outgoing);
+ physics.RAPIER_BOUNDARY=RAPIER;
  const group=new THREE.Group();group.name='regional-walking-trails';scene.add(group);
  const current=SCENE,anchorZ=spawn.z-20;
  const routes=WALK_LINKS[current].map(link=>({...link,points:plan({player,heightAt,pathAt,startZ:anchorZ,endZ:link.z,endOffset:link.endOffset})}));
+ for(const route of routes){
+  route.regionPoints=route.points.slice();
+  route.boundary=createBoundary({route,current,shared,physics,heightAt});
+  route.points.push(...route.boundary.pathPoints());group.add(route.boundary.group);
+ }
  for(const route of routes){route.remaining=new Array(route.points.length).fill(0);for(let i=route.points.length-2;i>=0;i--){const a=route.points[i],c=route.points[i+1];route.remaining[i]=route.remaining[i+1]+Math.hypot(a.x-c.x,a.z-c.z);}}
  const night=current==='aurora';
  const b=createKit(shared,{seed:583232,haze:true,palettes:{
@@ -59,7 +69,7 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
  const signs=[];
  for(const route of routes){
   const pos=[],indices=[];
-  for(let i=0;i<route.points.length;i++){
+  for(let i=0;i<route.regionPoints.length;i++){
    const p=route.points[i],a=route.points[Math.max(0,i-1)],c=route.points[Math.min(route.points.length-1,i+1)],dir=c.clone().sub(a).setY(0).normalize(),side=new THREE.Vector3(dir.z,0,-dir.x);
    for(let k=0;k<3;k++){const q=p.clone().addScaledVector(side,(k-1)*1.15);q.y=heightAt(q.x,q.z)+.045;pos.push(q.x,q.y,q.z);}
    if(i)for(let k=0;k<2;k++){const n=i*3+k;indices.push(n,n+1,n-3,n+1,n-2,n-3);}
@@ -67,7 +77,7 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(indices);geo.computeVertexNormals();
   b.add(geo,new THREE.Matrix4(),'path',{stroke:[.40,1.2],density:.7,free:true,grain:new THREE.Vector3(0,0,1)});
   for(const fraction of [.08,.62,.90]){
-   const i=Math.floor((route.points.length-1)*fraction),p=route.points[i],next=route.points[Math.min(i+2,route.points.length-1)],dir=next.clone().sub(p).setY(0).normalize();
+   const i=Math.floor((route.regionPoints.length-1)*fraction),p=route.points[i],next=route.points[Math.min(i+2,route.regionPoints.length-1)],dir=next.clone().sub(p).setY(0).normalize();
    const x=p.x+dir.z*2.0,z=p.z-dir.x*2.0,y=heightAt(x,z);
    b.box(x,y+.84,z,.13,1.68,.13,'wood',{stroke:[.13,.65],grain:'y'});
    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;const ctx=canvas.getContext('2d');
@@ -80,6 +90,30 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
  group.add(b.build().group);
  const status=document.createElement('div');status.id='world-walk-status';status.setAttribute('role','status');if(!capture)document.body.append(status);
  let clock=0,next=0,loading=false,lastSafe=player.feet.clone(),lastRecovery=-10;
+ let active=null,frame,baseFinish,previousBlend=0;
+ const baseFov=follow.camera.fov,baseNear=follow.camera.near;
+ const baseLight={};for(const k of ['uSunDir','uHaze','uHazeSun','uHazeGlow','uBounce','uGlazeMul','uHazeDensity','uGroundMist','uImpasto'])baseLight[k]=shared[k].value?.clone?.()??shared[k].value;
+ function boundaryAt(x,z){return routes.map(r=>r.boundary).find(b=>b.contains(x,z));}
+ function updateBoundary(){
+  const p=player.feet;active=boundaryAt(p.x,p.z)??null;
+  let blend=0;
+  for(const r of routes){const b=r.boundary;b.sky.visible=b===active;b.update(p);}
+  if(active)blend=smooth(5,64,active.progress(p.x,p.z));
+  regionVisibility.value=1-blend;
+  if(blend>0||previousBlend>0){
+   const fov=THREE.MathUtils.lerp(baseFov,42,blend),near=THREE.MathUtils.lerp(baseNear,.2,blend);
+   if(follow.camera.fov!==fov||follow.camera.near!==near){follow.camera.fov=fov;follow.camera.near=near;follow.camera.updateProjectionMatrix();}
+   if(frame){frame.uniforms.uCanvas.value=THREE.MathUtils.lerp(baseFinish.canvas,1.35,blend);frame.uniforms.uShafts.value=THREE.MathUtils.lerp(baseFinish.shafts,0,blend);}
+  }else if(frame)baseFinish={canvas:frame.uniforms.uCanvas.value,shafts:frame.uniforms.uShafts.value};
+  previousBlend=blend;
+  player.collisionFilter=active&&active.progress(p.x,p.z)>5?c=>active.colliders.has(c.handle):undefined;
+  for(const [k,v] of Object.entries(baseLight)){
+   const target=active?.shared[k]?.value??v;
+   if(typeof v==='number')shared[k].value=THREE.MathUtils.lerp(v,target,blend);
+   else shared[k].value.copy(v).lerp(target,blend);
+  }
+  return active;
+ }
  const temp=player.feet.clone();
  function recover(){
   if(clock-lastRecovery<1)return;lastRecovery=clock;
@@ -87,17 +121,23 @@ export function createWalkingConnections({shared,scene,player,input,follow,heigh
   player.body.setTranslation({x:p.x,y:p.y+player.t.radius+half+.04,z:p.z},true);player.world.propagateModifiedBodyPositionsToColliders();player.feet.copy(p);player.prevFeet.copy(p);player.visualY=p.y;player.vel.set(0,0,0);player.speed=0;player.grounded=true;
   status.textContent='已回到最近的安全路段';
  }
- return {routes,group,signs,recover,get loading(){return loading},update(time,dt){
+ return {routes,group,signs,recover,boundaryAt,updateBoundary,regionVisibility,setFrame(f){frame=f;baseFinish={canvas:f.uniforms.uCanvas.value,shafts:f.uniforms.uShafts.value}},get active(){return active},
+ heightAt(x,z){const b=boundaryAt(x,z);return b?b.sampleHeight(x,z):heightAt(x,z)},
+ get loading(){return loading},update(time,dt){
+  updateBoundary();
   clock+=dt;
   const p=player.feet,ground=heightAt(p.x,p.z),half=current==='aurora'?500:184;
-  if(player.grounded&&Math.abs(p.y-ground)<.45&&Math.abs(p.x)<half&&Math.abs(p.z)<half)lastSafe.copy(p);
+  if(player.grounded&&((active&&Math.abs(p.y-active.sampleHeight(p.x,p.z))<.5)||(Math.abs(p.y-ground)<.45&&Math.abs(p.x)<half&&Math.abs(p.z)<half)))lastSafe.copy(p);
   if(clock<next||loading||input.suspended)return;next=clock+.15;
   let nearest;
   for(const r of routes)for(let i=0;i<r.points.length;i+=2){const q=r.points[i],d=Math.hypot(q.x-p.x,q.z-p.z);if(!nearest||d<nearest.d)nearest={route:r,i,d};}
   if(!nearest)return;const {route,i,d}=nearest,end=route.points.at(-1),before=route.points.at(-4);
-  const distance=Math.hypot(end.x-p.x,end.z-p.z),forward=temp.copy(end).sub(before).setY(0).normalize().dot(player.vel);
-  status.textContent=d<5?`山路通往${regionById(route.to).name} · 约 ${Math.round(route.remaining[i])} 米`:'';
+  const forward=temp.copy(end).sub(before).setY(0).normalize().dot(player.vel);
+  status.textContent=active?`${active.spec.name} · ${regionById(route.to).name}方向`:d<5?`山路通往${regionById(route.to).name} · 约 ${Math.round(route.remaining[i])} 米`:'';
   if(d<7&&i>route.points.length*.68)window.worldTravel?.preload(route.to);
-  if(clock>2.5&&distance<3.5&&forward>.15&&player.grounded){loading=true;status.textContent=`正在进入${regionById(route.to).name}…`;onCross(route.to,{from:current});}
+  if(clock>2.5&&active===route.boundary&&active.progress(p.x,p.z)>120&&forward>.15&&player.grounded){
+   loading=true;status.textContent=`${active.spec.name} · 前往${regionById(route.to).name}`;
+   const local=active.project(p.x,p.z);onCross(route.to,{from:current,boundary:active.spec.id,s:local.s,u:local.u,y:p.y-active.end.y,yaw:active.yaw});
+  }
  }};
 }

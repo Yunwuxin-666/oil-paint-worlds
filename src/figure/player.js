@@ -57,7 +57,7 @@ export class Player {
   ground(x, z, fromY, maxDist = 1.6) {
     this.ray.origin = { x, y: fromY, z };
     this.ray.dir = { x: 0, y: -1, z: 0 };
-    const hit = this.world.castRayAndGetNormal(this.ray, maxDist, true, undefined, undefined, this.collider);
+    const hit = this.world.castRayAndGetNormal(this.ray, maxDist, true, undefined, undefined, this.collider, undefined, this.collisionFilter);
     if (!hit) return null;
     return { y: fromY - hit.timeOfImpact, normal: new THREE.Vector3(hit.normal.x, hit.normal.y, hit.normal.z) };
   }
@@ -65,7 +65,7 @@ export class Player {
   castRay(origin, dir, max) {
     this.ray.origin = { x: origin.x, y: origin.y, z: origin.z };
     this.ray.dir = { x: dir.x, y: dir.y, z: dir.z };
-    const hit = this.world.castRay(this.ray, max, true, undefined, undefined, this.collider);
+    const hit = this.world.castRay(this.ray, max, true, undefined, undefined, this.collider, undefined, this.collisionFilter);
     return hit ? hit.timeOfImpact : null;
   }
 
@@ -328,7 +328,7 @@ export class Player {
     if (!(this.grounded && !airborne)) this.vel.y -= (this.vel.y < 0 ? t.fallGravity : t.gravity) * dt;
     this.vel.y = Math.max(this.vel.y, -40);
     const d = { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt };
-    this.kcc.computeColliderMovement(this.collider, d);
+    this.kcc.computeColliderMovement(this.collider, d, undefined, undefined, this.collisionFilter);
     const mv = this.kcc.computedMovement();
     const was = this.grounded;
     this.grounded = this.kcc.computedGrounded();

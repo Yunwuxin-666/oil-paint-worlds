@@ -11,7 +11,7 @@ import recipe from '../../recipe.json';
 import RAPIER from '../figure/rapier/rapier.mjs';
 import { createShared, WIND } from '../oilpaint/common.js';
 import { createBrushSheet } from '../oilpaint/brush.js';
-import { prepareLand, createLand, heightAt } from './land.js';
+import { prepareLand, createLand, heightAt as landHeightAt } from './land.js';
 import { noise } from '../world/noise.js';
 import { START, BOUNDS, roadX } from './config.js';
 import { createEnvironment } from './environment.js';
@@ -31,8 +31,10 @@ import { Player } from '../figure/player.js';
 import { Input } from '../figure/input.js';
 import { Follow } from '../figure/camera.js';
 
-export async function startWorld(){
-const scope=createWorldScope();
+export async function startWorld({background=false}={}){
+const scope=createWorldScope({background});
+let travel;
+const heightAt=(x,z)=>travel?.walking.heightAt(x,z)??landHeightAt(x,z);
 const addEventListener=scope.listen, setTimeout=scope.delay;
 const q = new URLSearchParams(location.search);
 const capture = q.has('capture');
@@ -59,6 +61,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.autoClear = false;
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 document.getElementById('view').appendChild(renderer.domElement);
+if(background)renderer.domElement.style.visibility='hidden';
 
 const shared = createShared();
 shared.uSunDir.value.set(-.50,.62,-.60).normalize();
@@ -183,7 +186,8 @@ function respawn() {
 }
 
 const game = createGame({props,player,camera,physics,RAPIER,respawn,capture:capture||q.has('clean'),signal:scope.signal});
-const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:roadX,physics,animator,game,props,capture:capture||q.has('clean'),signal:scope.signal});
+for(const o of [man.object,figure.cloakMesh,figure.dabs])o.userData.boundaryKeep=true;
+travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt:landHeightAt,spawn,pathAt:roadX,physics,animator,game,props,capture:capture||q.has('clean'),signal:scope.signal});
 let overview=false;
 function toggleOverview(){
  overview=!follow.free;
@@ -199,6 +203,7 @@ const size = new THREE.Vector2();
 function tick(dt) {
   dt = Math.min(dt, 1 / 20);
   time += dt;
+  travel?.walking.updateBoundary();
   const inp = input.read(dt);
   if(environment.inWater){inp.walk=true;inp.sprint=false;}
   player.update(dt, inp, follow.yaw);
@@ -242,6 +247,7 @@ window.lab = {
   THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: landscape.counts, heightAt, respawn, game, props, physics, scene, environment, landscape, travel, way: Array.from({length:170},(_,i)=>[roadX(85-i),85-i]),
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
+  setTime(t){time=t;shared.uTime.value=t;},
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */
   teleport(x, z, fx, fz) {
     const y = heightAt(x, z), half = player.halfHeight();
@@ -313,8 +319,10 @@ document.getElementById('loading')?.remove();
 if (q.has('clean') || capture) document.getElementById('hint')?.remove();
 block.ready();
 window.lab.ready = true;
+scope.seal();
+travel.walking.setFrame(frame);
 // for the measuring tools
 window.__block = { ready: true, block, timings, set() {} };
 
-return {lab:window.lab,dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
+return {lab:window.lab,removeUI(){scope.removeUI();},activateUI(){scope.activateUI();},dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
 }

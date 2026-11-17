@@ -19,7 +19,7 @@ import { Animator } from '../figure/animator.js';
 import { Player } from '../figure/player.js';
 import { Input } from '../figure/input.js';
 import { Follow } from '../figure/camera.js';
-import { prepareLand, createLand, heightAt, crestX, START, MOON, EXTENT } from './land.js';
+import { prepareLand, createLand, heightAt as landHeightAt, crestX, START, MOON, EXTENT } from './land.js';
 import { createSnow } from './snow.js';
 import { createSky } from './sky.js';
 import { createFar } from './far.js';
@@ -29,8 +29,10 @@ import { createDrift } from './drift.js';
 import { createPines } from './pines.js';
 import { createCabin } from './cabin.js';
 
-export async function startWorld(){
-const scope=createWorldScope();
+export async function startWorld({background=false}={}){
+const scope=createWorldScope({background});
+let travel;
+const heightAt=(x,z)=>travel?.walking.heightAt(x,z)??landHeightAt(x,z);
 const addEventListener=scope.listen, setTimeout=scope.delay;
 const q = new URLSearchParams(location.search);
 const capture = q.has('capture');
@@ -54,6 +56,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.autoClear = false;
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 document.getElementById('view').appendChild(renderer.domElement);
+if(background)renderer.domElement.style.visibility='hidden';
 
 // the night: a low moon for the sun, thin clear air, and the lantern's colour
 const shared = createShared();
@@ -148,7 +151,8 @@ follow.pitch = -0.07;
 follow.lift = 1.5;
 follow.sink = 0.7;
 const input = new Input(document.getElementById('view'), { pads: !capture && !q.has('nopad') });
-const travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt,spawn,pathAt:crestX,physics,animator,capture:capture||q.has('clean'),signal:scope.signal});
+for(const o of [man.object,figure.cloakMesh,figure.dabs])o.userData.boundaryKeep=true;
+travel = createWorldTravel({shared,scene,player,input,follow,camera,heightAt:landHeightAt,spawn,pathAt:crestX,physics,animator,capture:capture||q.has('clean'),signal:scope.signal});
 physics.step();
 // he has come up from the south: his tracks are already there behind him
 tracks.lay(crestX, START.z + 16, START.z + 0.4);
@@ -236,6 +240,7 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyV') firstKey = !firstKey
 function tick(dt) {
   dt = Math.min(dt, 1 / 20);
   time += dt;
+  travel?.walking.updateBoundary();
   const inp = input.read(dt);
   const isIn = cabin.inside(player.feet);
   first += ((firstKey || cabin.threshold(player.feet) ? 1 : 0) - first) * (1 - Math.exp(-6 * dt));
@@ -304,6 +309,7 @@ window.lab = {
   THREE, player, follow, camera, input, animator, figure, shared, frame, renderer, timings, counts: { ...snow.counts, ...pines.counts, ...cabin.counts }, cabin, heightAt, crestX, tracks, sky, travel, scene, physics,
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) tick(dt); },
   setInput(fn) { input.override = fn; },
+  setTime(t){time=t;shared.uTime.value=t;},
   /** Puts him at (x, z) on the ground, facing (fx, fz), with the eye behind him. */
   teleport(x, z, fx, fz) {
     place(x, z, Math.atan2(fx - x, fz - z));
@@ -371,7 +377,9 @@ document.getElementById('loading')?.remove();
 if (q.has('clean') || capture) document.getElementById('hint')?.remove();
 block.ready();
 window.lab.ready = true;
+scope.seal();
+travel.walking.setFrame(frame);
 window.__block = { ready: true, block, timings, set() {} };
 
-return {lab:window.lab,dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
+return {lab:window.lab,removeUI(){scope.removeUI();},activateUI(){scope.activateUI();},dispose(){scope.dispose({renderer,scene,shared,physics,input,travel,frame,shade,block});}};
 }

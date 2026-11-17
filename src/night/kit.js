@@ -13,7 +13,7 @@ import { dabMaterial, dabGeometry, dabMesh } from '../oilpaint/dabs.js';
 import { rng } from '../world/noise.js';
 
 export function createKit(shared, { palettes, head = '', light, origin = [0, 0, 0], seed = 1, haze = false, order = 3 }) {
-  const rand = rng(seed);
+  let rand = rng(seed);
   const names = Object.keys(palettes);
   const index = (name) => { const i = names.indexOf(name); if (i < 0) throw new Error(`no palette ${name}`); return i; };
   const O = new THREE.Vector3(...origin);
@@ -235,5 +235,5 @@ export function createKit(shared, { palettes, head = '', light, origin = [0, 0, 
     group.add(under, strokes);
     return { group, under, strokes, count: dab.data.length / 4 };
   }
-  return { stroke, add, box, round, quad, tri, place, build, rand };
+  return { stroke, add, box, round, quad, tri, place, build, rand, reseed(value){rand=rng(value)} };
 }

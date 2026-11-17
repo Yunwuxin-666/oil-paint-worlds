@@ -18,7 +18,7 @@ export function createWorldTravel({shared,scene,player,input,follow,camera,heigh
   if(SCENE==='village')props.drawPicture(game.state.complete);
   if(SCENE==='alpine')for(const cow of props.cows)cow.fed=game.state.fed.includes(cow.id);
  }
- function save(){if(!game?.state)return;const all=safeRead();all[SCENE]=JSON.parse(JSON.stringify(game.state));try{sessionStorage.setItem(PROGRESS_KEY,JSON.stringify(all))}catch{}}
+ function save(){if(!game?.state)return;const all=safeRead();all[region.id]=JSON.parse(JSON.stringify(game.state));try{sessionStorage.setItem(PROGRESS_KEY,JSON.stringify(all))}catch{}}
  function arrive(){
   if(new URLSearchParams(location.search).get('arrival')!=='waystation')return;
   const {x,z}=station.landing,y=heightAt(x,z),half=player.halfHeight();
@@ -28,7 +28,16 @@ export function createWorldTravel({shared,scene,player,input,follow,camera,heigh
   const url=new URL(location.href);url.searchParams.delete('arrival');history.replaceState(null,'',url);
  }
  arrive();
- const walking=createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,capture,onCross(to,walk){save();window.worldTravel.switchScene(to,{walk});}});
+ const walking=createWalkingConnections({shared,scene,player,input,follow,heightAt,pathAt,spawn,capture,physics,RAPIER:player.R,onCross(to,walk){save();window.worldTravel.switchScene(to,{walk});}});
+ // Shareable walking-trail entrances for reviewing the real playable geometry.
+ const entry=new URLSearchParams(location.search).get('trail');
+ const entrance=walking.routes.find(r=>r.boundary.spec.id===entry||r.to===entry);
+ if(entrance){
+  const b=entrance.boundary,s=b.sEnd+b.sign*8,p=b.point(b.path(s),s,b.height(b.path(s),s)),half=player.halfHeight();
+  player.body.setTranslation({x:p.x,y:p.y+player.t.radius+half+.03,z:p.z},true);physics.propagateModifiedBodyPositionsToColliders();player.feet.copy(p);player.prevFeet.copy(p);player.visualY=p.y;player.vel.set(0,0,0);player.speed=0;player.grounded=true;
+  player.yaw=player.lastYaw=b.yaw+(b.sign<0?Math.PI:0);follow.yaw=player.yaw;follow.free=null;follow.pivot.set(0,0,0);walking.updateBoundary();
+  const url=new URL(location.href);url.searchParams.delete('trail');history.replaceState(null,'',url);
+ }
  if(capture)return {station,walking,regionId:SCENE,recover:walking.recover,update(time,dt){station.update(time);walking.update(time,dt)},save,open(){},close(){}};
  const atlas=document.createElement('section');atlas.id='world-atlas';atlas.setAttribute('aria-label','四境漫游世界地图');
  atlas.style.setProperty('--atlas-image',`url("${new URL('./world-map.png',location.href).href}")`);
@@ -48,6 +57,7 @@ export function createWorldTravel({shared,scene,player,input,follow,camera,heigh
  for(const el of atlas.querySelectorAll('[data-destination]'))el.onclick=()=>select(el.dataset.destination);
  button.onclick=()=>travel(selected);portalAction.onclick=()=>open(region.neighbors[0]);
  addEventListener('keydown',e=>{
+  if(window.worldTravel?.busy)return;
   if(e.ctrlKey||e.altKey||e.metaKey)return;
   if(e.code==='KeyM'||(e.code==='Escape'&&expanded)){
    e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)(expanded?close():open());return;
